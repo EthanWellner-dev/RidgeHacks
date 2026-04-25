@@ -56,8 +56,9 @@ class HotPlate:
         Returns:
             True if hotplate was clicked (toggled)
         """
-        # Do not toggle if placed in a sidebar (inactive)
-        if getattr(self, 'in_sidebar', False):
+        # Only respond to clicks when active (allows sidebar tools to be clickable
+        # if the UI wants them active while visually in the sidebar)
+        if not getattr(self, 'active', True):
             return False
         bounds = self.bounds
         if (bounds['x'] <= mouse_x <= bounds['x'] + bounds['width'] and

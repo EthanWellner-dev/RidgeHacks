@@ -211,8 +211,8 @@ class GameMode:
 
         # Hotplate press
         if self.hotplate:
-            # Only toggle if hotplate is active (not placed in sidebar)
-            if not getattr(self.hotplate, 'in_sidebar', False) and self.hotplate.on_click(mouse_x, mouse_y):
+            # Use the `active` flag to decide whether hotplate should respond
+            if getattr(self.hotplate, 'active', True) and self.hotplate.on_click(mouse_x, mouse_y):
                 return
 
     def on_mouse_up(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
