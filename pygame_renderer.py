@@ -166,12 +166,7 @@ class PygameRenderer:
     
     def render_flask(self, flask_data: Dict) -> None:
         """Render the flask container."""
-        # --- ADDED LOGIC: Trigger reaction if 2 or more chemicals are present ---
-        chems = flask_data.get('chemicals',[])
-        if len(chems) >= 2:
-            if hasattr(flask_data, 'react'):
-                flask_data.react()
-        # ------------------------------------------------------------------------
+        chems = flask_data.get('chemicals', [])
 
         bounds = flask_data['bounds']
         x = bounds['x']

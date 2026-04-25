@@ -44,7 +44,7 @@ class Flask:
         # Metadata
         self.name = "Flask"
     
-    def add_reactant(self, chemical: Chemical, moles: float) -> None:
+    def add_reactant(self, chemical: Chemical, moles: float, trigger_react: bool = True) -> None:
         """
         Add a reactant to the flask.
         
@@ -52,7 +52,19 @@ class Flask:
             chemical: Chemical object to add
             moles: Amount in moles
         """
-        self.chemical_state.add_chemical(chemical, moles)
+        # Defensive: ensure we don't crash if UI passes a wrapper or wrong object
+        try:
+            self.chemical_state.add_chemical(chemical, moles, trigger_react=trigger_react)
+        except Exception as e:
+            # Try to coerce common wrapper types
+            if hasattr(chemical, 'chemical') and isinstance(getattr(chemical, 'chemical'), Chemical):
+                self.chemical_state.add_chemical(getattr(chemical, 'chemical'), moles, trigger_react=trigger_react)
+                return
+            # If given a name or dict, let ChemicalState handle coercion (it will warn if unsupported)
+            try:
+                self.chemical_state.add_chemical(chemical, moles, trigger_react=trigger_react)
+            except Exception:
+                print(f"Warning: Failed to add reactant: {e}")
     
     def add_catalyst(self, catalyst_factor: float) -> None:
         """
@@ -131,6 +143,7 @@ class Flask:
         Returns:
             Aggregated metadata from the simulation period
         """
+        print("reacting")
         elapsed = 0.0
         total_reactions = []
         total_heat = 0.0

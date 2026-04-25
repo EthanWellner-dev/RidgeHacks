@@ -322,16 +322,16 @@ class GameApplication:
             # --- ADDED LOGIC: Check for reactions and temperature changes ---
             if self.game_mode and getattr(self.game_mode, 'flask', None):
                 flask = self.game_mode.flask
-                
-                # 1) If 2 or more chemicals are in the flask, trigger reaction
-                if hasattr(flask, 'chemicals') and len(flask.chemicals) >= 2:
-                    if hasattr(flask, 'react'):
-                        flask.react()
-                
-                # 2) If temperature changes, call temp_change()
-                current_temp = getattr(flask, 'temperature', getattr(flask, 'current_temp', None))
+
+                # Avoid running the long-running `flask.react()` simulation every frame.
+                # Reactions and reaction discovery are triggered when chemicals are
+                # added via `ChemicalState.add_chemical` (called by `flask.add_reactant`).
+                # Here we only track temperature changes for UI/side effects.
+                current_temp = None
+                if hasattr(flask, 'chemical_state') and hasattr(flask.chemical_state, 'get_average_temperature'):
+                    current_temp = flask.chemical_state.get_average_temperature()
+
                 if current_temp is not None:
-                    # Ignore the very first frame where last_flask_temp hasn't been set yet
                     if self.last_flask_temp is not None and current_temp != self.last_flask_temp:
                         if hasattr(flask, 'temp_change'):
                             flask.temp_change()

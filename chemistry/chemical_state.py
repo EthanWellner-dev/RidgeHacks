@@ -36,9 +36,15 @@ class ChemicalState:
         self._initial_temperature = temperature
         # Expose current state temperature (average/system temperature).
         self.temperature = float(temperature)
+        # Deferred reaction discovery flags (debounce expensive react() calls)
+        self._needs_reaction_discovery = False
+        self._reaction_delay = 0.25  # seconds to wait before running react()
+        self._reaction_timer = 0.0
     
     def react(self) -> None:
         """With the addition of a new component, update all reactions and shift chemicals accordingly."""
+        # Reaction discovery/generation may be expensive; callers should schedule or
+        # defer this when used interactively. Keep this method quiet by default.
         
         # Get all current chemical objects
         current_chemicals = set(self.chemicals.keys())
@@ -718,19 +724,55 @@ class ChemicalState:
         # should invoke reaction discovery. Internal updates can pass False to avoid
         # mutating reaction lists during an update loop.
 
-        if chemical not in self.chemicals:
-            self.chemicals[chemical] = 0.0
-            # Set initial temperature for new chemicals
-            chemical.set_temperature(self._initial_temperature)
+        # Defensive: allow being passed non-Chemical-like objects (UI/draggable wrappers)
+        chem_obj = chemical
+        if not isinstance(chemical, Chemical):
+            # If handed a dict-like payload
+            if isinstance(chemical, dict):
+                name = chemical.get('name') or chemical.get('chemical')
+                if not name:
+                    print("Warning: add_chemical received invalid dict without 'name'")
+                    return
+                chem_obj = self._get_or_create_chemical(name, {}) or Chemical.from_name(name)
+            # If object wraps a Chemical (common in UI tools)
+            elif hasattr(chemical, 'chemical') and isinstance(getattr(chemical, 'chemical'), Chemical):
+                chem_obj = getattr(chemical, 'chemical')
+            # If object has a name attribute, try to coerce
+            elif hasattr(chemical, 'name') and isinstance(getattr(chemical, 'name'), str):
+                chem_obj = self._get_or_create_chemical(getattr(chemical, 'name'), {}) or Chemical.from_name(getattr(chemical, 'name'))
+            else:
+                print(f"Warning: Unsupported chemical type passed to add_chemical: {type(chemical)}")
+                return
 
-        self.chemicals[chemical] += moles
-        self.chemicals[chemical] = max(0, self.chemicals[chemical])
+        if chem_obj not in self.chemicals:
+            self.chemicals[chem_obj] = 0.0
+            # Set initial temperature for new chemicals
+            try:
+                chem_obj.set_temperature(self._initial_temperature)
+            except Exception:
+                pass
+
+        # Safely update moles
+        try:
+            self.chemicals[chem_obj] += float(moles)
+        except Exception:
+            # If moles cannot be converted, ignore
+            return
+
+        self.chemicals[chem_obj] = max(0, self.chemicals[chem_obj])
 
         # Update concentration immediately (use effective volume later)
-        chemical.update_concentration(self.volume)
+        try:
+            chem_obj.update_concentration(self.volume)
+        except Exception:
+            pass
 
         if trigger_react:
-            self.react()  # Check for reaction updates after adding chemical
+            # Schedule reaction discovery instead of running it synchronously. This
+            # avoids heavy work during UI operations (drag/hold-dispense) and batches
+            # multiple small additions together.
+            self._needs_reaction_discovery = True
+            self._reaction_timer = self._reaction_delay
     
     def add_reaction(self, reaction: Reaction) -> None:
         """Add a reaction to the system."""
@@ -793,6 +835,21 @@ class ChemicalState:
         Returns:
             dict with 'total_heat_change' (kJ) and 'reactions_fired'
         """
+        # If reaction discovery was scheduled, run it after a short debounce period.
+        if getattr(self, '_needs_reaction_discovery', False):
+            try:
+                self._reaction_timer -= float(delta_time)
+            except Exception:
+                self._reaction_timer = 0.0
+
+            if self._reaction_timer <= 0.0:
+                try:
+                    self.react()
+                except Exception as e:
+                    print(f"Warning: Exception while performing deferred react(): {e}")
+                finally:
+                    self._needs_reaction_discovery = False
+
         # Use sub-stepping to improve numerical stability (reduce Euler overshoot).
         max_step = 0.1
         steps = max(1, int((delta_time / max_step) + 0.9999))

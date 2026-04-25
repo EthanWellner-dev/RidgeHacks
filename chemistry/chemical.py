@@ -41,6 +41,13 @@ class Chemical:
 
         # Auto-populate thermodynamic properties for single-element chemicals
         self._auto_populate_properties()
+        # Cache for molar mass (g/mol) to avoid repeated expensive lookups
+        self._molar_mass = None
+        # Precompute molar mass once to avoid the first-call penalty during UI interactions
+        try:
+            _ = self.get_mass()
+        except Exception:
+            pass
     
     def _auto_populate_properties(self) -> None:
         """
@@ -171,16 +178,19 @@ class Chemical:
         Returns:
             Mass in grams
         """
-        total_mass = 0.0
-        for element_symbol, count in self.components:
-            try:
-                element = mendeleev.element(element_symbol)
-                total_mass += element.mass * count
-            except:
-                # Fallback for unknown elements
-                total_mass += 1.0 * count  # Assume 1 g/mol
-        
-        return total_mass * self.moles
+        # Cache molar mass (g/mol) on first computation to avoid repeated lookups
+        if self._molar_mass is None:
+            total_mass = 0.0
+            for element_symbol, count in self.components:
+                try:
+                    element = mendeleev.element(element_symbol)
+                    total_mass += float(getattr(element, 'mass', 0.0)) * count
+                except Exception:
+                    # Fallback for unknown elements
+                    total_mass += 1.0 * count  # Assume 1 g/mol
+            self._molar_mass = total_mass
+
+        return (self._molar_mass or 0.0) * self.moles
     
     def get_component_amounts(self) -> dict:
         """Return a mapping of element symbol -> total atom count in current moles."""

@@ -274,7 +274,13 @@ class GameMode:
                 if bx <= mouse_x <= bx + bw and by <= mouse_y <= by + bh:
                     # Dispense into flask
                     dispense_data = self.dragging_dropper.dispense()
-                    self.flask.add_reactant(dispense_data['chemical'], dispense_data['moles'])
+                    # When dropping a tool into the flask, avoid triggering expensive
+                    # reaction discovery synchronously — schedule or defer instead.
+                    try:
+                        self.flask.add_reactant(dispense_data['chemical'], dispense_data['moles'], trigger_react=False)
+                    except TypeError:
+                        # Backwards compatibility if signature not supported
+                        self.flask.add_reactant(dispense_data['chemical'], dispense_data['moles'])
 
             # end drag
             self.dragging_dropper.on_mouse_up()
@@ -313,7 +319,7 @@ class GameMode:
         """
         if not self.is_active or self.is_paused:
             return {'status': 'paused', 'message': self.state_message}
-        
+
         # Update UI elements
         for dropper in self.droppers:
             dropper.update(delta_time)
@@ -321,11 +327,16 @@ class GameMode:
             if hasattr(dropper, 'get_hold_dispense'):
                 hold = dropper.get_hold_dispense(delta_time)
                 if hold:
-                    self.flask.add_reactant(hold['chemical'], hold['moles'])
-        
+                    # For hold-dispense (titration) avoid triggering full reaction discovery every frame.
+                    try:
+                        self.flask.add_reactant(hold['chemical'], hold['moles'], trigger_react=False)
+                    except Exception:
+                        # Fallback to default behavior if something unexpected occurs
+                        self.flask.add_reactant(hold['chemical'], hold['moles'])
+
         # Update flask
         flask_update = self.flask.update(delta_time)
-        
+
         # Apply hotplate heat
         if self.hotplate:
             # If hotplate has an external controller (TemperatureChanger), ask it
