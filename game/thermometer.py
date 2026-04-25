@@ -41,6 +41,13 @@ class Thermometer:
             'width': self.width,
             'height': self.height
         }
+
+        # Initialize a pygame.Rect hitbox for click detection (synchronized by renderer)
+        try:
+            import pygame
+            self.rect = pygame.Rect(int(self.x), int(self.y), int(self.width), int(self.height))
+        except Exception:
+            self.rect = None
         
         self.bulb_radius = self.width / 2
         # Sidebar state

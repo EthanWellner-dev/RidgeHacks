@@ -176,6 +176,12 @@ class GameMode:
             if rb['x'] <= mouse_x <= rb['x'] + rb['width'] and rb['y'] <= mouse_y <= rb['y'] + rb['height']:
                 # Run reaction; user-triggered so run synchronously
                 try:
+                    # Ensure reaction discovery runs first if it was deferred during UI drops
+                    try:
+                        if getattr(self.flask, 'chemical_state', None) is not None:
+                            self.flask.chemical_state.react()
+                    except Exception:
+                        pass
                     self.flask.react()
                 except Exception:
                     pass

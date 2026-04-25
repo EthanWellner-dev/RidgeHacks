@@ -49,6 +49,12 @@ class HotPlate:
         # Whether this hotplate is currently placed in a sidebar (inactive)
         self.in_sidebar = False
         self.active = True
+        # Initialize pygame.Rect for click detection and dragging
+        try:
+            import pygame
+            self.rect = pygame.Rect(int(self.bounds['x']), int(self.bounds['y']), int(self.bounds['width']), int(self.bounds['height']))
+        except Exception:
+            self.rect = None
     
     def on_click(self, mouse_x: float, mouse_y: float) -> bool:
         """

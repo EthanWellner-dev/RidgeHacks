@@ -20,6 +20,12 @@ class Stopwatch:
         self.in_sidebar = False
         self.active = True
         self.is_hovered = False
+        # Initialize pygame.Rect for click detection
+        try:
+            import pygame
+            self.rect = pygame.Rect(int(self.x), int(self.y), int(self.width), int(self.height))
+        except Exception:
+            self.rect = None
 
     def start(self):
         if not self.running:

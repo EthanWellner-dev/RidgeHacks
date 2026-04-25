@@ -134,6 +134,23 @@ class PygameRenderer:
             return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
         except:
             return self.colors['gray']
+
+    def _ensure_min_brightness(self, rgb: Tuple[int, int, int], min_sum: int = 80) -> Tuple[int, int, int]:
+        """Ensure the sum of RGB channels is at least `min_sum` by scaling up channels proportionally."""
+        r, g, b = rgb
+        s = r + g + b
+        if s >= min_sum or s == 0:
+            return (r, g, b)
+        # Scale factor to reach min_sum
+        factor = min_sum / float(max(1, s))
+        nr = int(max(0, min(255, round(r * factor))))
+        ng = int(max(0, min(255, round(g * factor))))
+        nb = int(max(0, min(255, round(b * factor))))
+        # If numeric rounding made sum still < min_sum, bump the red channel
+        if nr + ng + nb < min_sum:
+            deficit = min_sum - (nr + ng + nb)
+            nr = min(255, nr + deficit)
+        return (nr, ng, nb)
     
     def _clamp_color(self, rgb: Tuple[int, int, int]) -> Tuple[int, int, int]:
         """Clamp RGB values to 0-255 range."""
@@ -190,6 +207,7 @@ class PygameRenderer:
 
         color_rgb = self._hex_to_rgb(flask_data['color_hex'])
         color_rgb = self._clamp_color(color_rgb)
+        color_rgb = self._ensure_min_brightness(color_rgb, min_sum=80)
 
         try:
             pygame.draw.rect(self.screen, color_rgb, (inner_x, inner_y + inner_h * 0.15, inner_w, inner_h * 0.8))
