@@ -42,6 +42,8 @@ class GameMode:
         self.is_paused = False
         self.is_active = False
         self.state_message = ""
+        # Left sidebar scroll offset (pixels)
+        self.left_sidebar_scroll = 0.0
     
     def initialize_sandbox(self, flask: Flask, droppers: list = None, 
                           thermometer: Thermometer = None,
@@ -154,6 +156,18 @@ class GameMode:
             self.on_mouse_click(event.get('x', 0), event.get('y', 0))
         elif event_type == 'mouse_move':
             self.on_mouse_move(event.get('x', 0), event.get('y', 0))
+        elif event_type == 'mouse_wheel':
+            # event should include 'target' ('left' or 'right') and 'delta'
+            delta = event.get('delta', event.get('y', 0))
+            target = event.get('target', None)
+            if target == 'left':
+                # scroll the left sidebar list
+                self.left_sidebar_scroll += -int(delta) * 24  # 24 px per wheel tick
+                # clamp to reasonable bounds (can't be positive beyond 0)
+                self.left_sidebar_scroll = min(0, self.left_sidebar_scroll)
+            elif target == 'right':
+                # pass through to other handlers (if needed)
+                pass
         elif event_type == 'mouse_down':
             self.on_mouse_down(event.get('x', 0), event.get('y', 0), event.get('button', 1))
         elif event_type == 'mouse_up':
@@ -430,11 +444,18 @@ class GameMode:
             for emitter in self.flask.particle_emitters:
                 data['particles'].extend(emitter.get_particles_to_render())
         
-        # Add UI element render data
+        # Add UI element render data (apply left-sidebar scroll to droppers)
         for dropper in self.droppers:
+            d = dropper.get_render_data()
+            # Adjust y by left sidebar scroll if this dropper appears in the left area
+            try:
+                d = d.copy()
+                d['y'] = int(d.get('y', 0) + self.left_sidebar_scroll)
+            except Exception:
+                pass
             data['ui_elements'].append({
                 'type': 'dropper',
-                'data': dropper.get_render_data(),
+                'data': d,
                 'obj': dropper
             })
 

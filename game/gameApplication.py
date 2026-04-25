@@ -77,20 +77,41 @@ class GameApplication:
             'height': 500
         }
         
+        # Expanded starter chemical library for left sidebar
         water = Chemical("H2O",[("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)
-        acid = Chemical("HCl",[("H", 1), ("Cl",1)], 0.0, "#FF0000", -813)
-        base = Chemical("NaOH", [("Na", 1), ("O", 1), ("H", 1)], 0.0, "#0000FF", -427)
-        gas = Chemical("O2", [("O", 2)], 0.0, "#87CEEB", 0)
-        
-        left_x = 40
-        start_y = 140
-        spacing_y = 110
-        droppers =[
-            Dropper(left_x, start_y + 0 * spacing_y, water, 0.2, width=80, height=90, label="Water"),
-            Dropper(left_x, start_y + 1 * spacing_y, acid, 0.1, width=80, height=90, label="HCl"),
-            Dropper(left_x, start_y + 2 * spacing_y, base, 0.1, width=80, height=90, label="NaOH"),
-            Dropper(left_x, start_y + 3 * spacing_y, gas, 0.05, width=80, height=90, label="O2"),
+        acids = [
+            Chemical('HCl', [('H',1),('Cl',1)], 0.0, '#FF6666', -92.3),
+            Chemical('H2SO4', [('H',2),('S',1),('O',4)], 0.0, '#FF4444', -814.0),
+            Chemical('HNO3', [('H',1),'N' if False else ('N',1),('O',3)], 0.0, '#FF5555', -207.0),
+            Chemical('CH3COOH', [], 0.0, '#FFA0A0', -484.0),
         ]
+        bases = [
+            Chemical('NaOH', [('Na',1),('O',1),('H',1)], 0.0, '#0000FF', -470.0),
+            Chemical('KOH', [('K',1),('O',1),('H',1)], 0.0, '#3366FF', -420.0),
+            Chemical('NH3', [('N',1),('H',3)], 0.0, '#CCCCFF', -46.0)
+        ]
+        gases = [Chemical('O2', [('O',2)], 0.0, '#87CEEB', 0.0)]
+
+        left_x = 40
+        start_y = 120
+        spacing_y = 110
+        droppers = []
+        idx = 0
+        # Water first
+        droppers.append(Dropper(left_x, start_y + idx * spacing_y, water, 0.2, width=80, height=90, label="Water"))
+        idx += 1
+        # Acids
+        for a in acids:
+            droppers.append(Dropper(left_x, start_y + idx * spacing_y, a, 0.1, width=80, height=90, label=a.name))
+            idx += 1
+        # Bases
+        for b in bases:
+            droppers.append(Dropper(left_x, start_y + idx * spacing_y, b, 0.1, width=80, height=90, label=b.name))
+            idx += 1
+        # Some gases
+        for g in gases:
+            droppers.append(Dropper(left_x, start_y + idx * spacing_y, g, 0.05, width=80, height=90, label=g.name))
+            idx += 1
         
         # Tools initialized in the Right Sidebar area
         right_x = self.width - 250
@@ -265,7 +286,18 @@ class GameApplication:
                         
             elif event.type == pygame.MOUSEWHEEL:
                 if self.state in [AppState.SANDBOX, AppState.CHALLENGE] and self.game_mode:
-                    self.game_mode.handle_input({'type': 'mouse_wheel', 'y': event.y})
+                    # Determine which sidebar the mouse is over and forward delta
+                    mx, my = pygame.mouse.get_pos()
+                    left_width, right_width, padding = 140, 300, 20
+                    left_x = padding
+                    left_w = left_width
+                    right_x = self.width - right_width - padding
+                    target = None
+                    if left_x <= mx <= left_x + left_w:
+                        target = 'left'
+                    elif right_x <= mx <= right_x + right_width:
+                        target = 'right'
+                    self.game_mode.handle_input({'type': 'mouse_wheel', 'delta': event.y, 'target': target, 'x': mx, 'y': my})
 
             elif event.type == pygame.VIDEORESIZE:
                 # Update the window to the new size
