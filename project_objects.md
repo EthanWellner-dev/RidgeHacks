@@ -12,6 +12,9 @@ Represents a single chemical substance in the system. Stores the name, current m
 - Enthalpy (kJ/mol)
 - Concentration (derived from moles/volume)
 
+**Planned Methods:**
+- `get_component_details()` - Returns display information about the chemical (name, concentration, color, properties). **Not yet implemented.**
+
 ---
 
 ### `Reaction`
