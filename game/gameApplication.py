@@ -60,7 +60,7 @@ class GameApplication:
     def initialize(self) -> None:
         """Initialize the application."""
         self.renderer.initialize()
-        print("Dynamic ChemEngine initialized")
+        print("Big Alchemy initialized")
         print(f"Window: {self.width}x{self.height}")
         print("Press UP/DOWN to navigate menu, ENTER to select")
     

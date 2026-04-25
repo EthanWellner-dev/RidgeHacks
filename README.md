@@ -1,9 +1,9 @@
 # RidgeHacks
 The winners ofc 🤪
 
-Project Overview: The Dynamic ChemEngine
+Project Overview: The Big Alchemy
 1. Project Objective (What It Is)
-The Dynamic ChemEngine is an interactive, 2D physics-based chemistry simulator built in Python. Unlike static calculators, it is a living system that models the complex, real-time interplay between chemical equilibrium, reaction kinetics, and thermodynamics. The application visualizes abstract chemical concepts—like Le Chatelier's principle and activation energy—through highly responsive fluid-particle systems, dynamic color shifts, and real-time thermal data.
+The Big Alchemy is an interactive, 2D physics-based chemistry simulator built in Python. Unlike static calculators, it is a living system that models the complex, real-time interplay between chemical equilibrium, reaction kinetics, and thermodynamics. The application visualizes abstract chemical concepts—like Le Chatelier's principle and activation energy—through highly responsive fluid-particle systems, dynamic color shifts, and real-time thermal data.
 
 2. The Science (The Chemistry Logic)
 The simulation’s backend continuously calculates the state of the virtual flask based on three interconnected scientific pillars:

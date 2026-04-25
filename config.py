@@ -6,7 +6,7 @@ config.py - Game configuration and settings.
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 800
 FPS = 60
-WINDOW_TITLE = "Dynamic ChemEngine"
+WINDOW_TITLE = "Big Alchemy"
 
 # Color scheme
 COLORS = {

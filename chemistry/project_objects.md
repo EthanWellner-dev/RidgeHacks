@@ -1,4 +1,4 @@
-# Dynamic ChemEngine - Object Architecture
+# Big Alchemy - Object Architecture
 
 ## Core Chemical Classes
 

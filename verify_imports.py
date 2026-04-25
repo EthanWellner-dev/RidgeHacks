@@ -23,7 +23,7 @@ def verify_module(module_name, description=""):
 def main():
     """Verify all imports."""
     print("=" * 70)
-    print("Dynamic ChemEngine - Import Verification")
+    print("Big Alchemy - Import Verification")
     print("=" * 70)
     print()
     

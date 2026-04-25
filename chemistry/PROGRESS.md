@@ -1,4 +1,4 @@
-# Dynamic ChemEngine - Development Progress
+# Big Alchemy - Development Progress
 
 ## ✅ Completed Core Objects
 
@@ -222,7 +222,7 @@ RidgeHacks/
 
 ## 🎉 Summary
 
-**All backend logic is complete and tested.** The Dynamic ChemEngine now has:
+**All backend logic is complete and tested.** The Big Alchemy now has:
 - Full chemistry simulation with equilibrium and kinetics ✓
 - Particle effects system ✓
 - Interactive UI elements ✓

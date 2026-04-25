@@ -52,8 +52,8 @@ class PygameRenderer:
     def initialize(self) -> None:
         """Initialize pygame display."""
         pygame.init()
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Dynamic ChemEngine")
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        pygame.display.set_caption("Big Alchemy")
         self._load_fonts()
         # Load optional assets
         self.assets = {}
@@ -800,7 +800,7 @@ class PygameRenderer:
         """Render main menu."""
         self.clear()
         
-        title = self.fonts['title'].render("Dynamic ChemEngine", True, (0, 0, 0))
+        title = self.fonts['title'].render("Big Alchemy", True, (0, 0, 0))
         title_rect = title.get_rect(center=(self.width // 2, 100))
         self.screen.blit(title, title_rect)
         

@@ -1,5 +1,5 @@
 """
-Dynamic ChemEngine - Interactive 2D Physics-Based Chemistry Simulator
+Big Alchemy - Interactive 2D Physics-Based Chemistry Simulator
 
 Core Chemistry Modules:
 - Chemical: Individual chemical substances
