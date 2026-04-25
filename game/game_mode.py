@@ -25,6 +25,7 @@ class GameMode:
         self.mode_type = mode_type.lower()
         self.flask = None
         self.challenge = None
+        self.challenge_scroll = 0.0  # vertical scroll offset for challenge objectives
         
         # UI Elements
         self.ui_elements = []  # [Dropper, Thermometer, HotPlate, ...]
@@ -114,6 +115,13 @@ class GameMode:
             self.on_mouse_click(event.get('x', 0), event.get('y', 0))
         elif event_type == 'mouse_move':
             self.on_mouse_move(event.get('x', 0), event.get('y', 0))
+        elif event_type == 'mouse_wheel':
+            # Adjust scroll for challenge objectives
+            if self.mode_type == 'challenge':
+                # event['y'] is positive when scrolling up
+                self.challenge_scroll -= event.get('y', 0) * 20
+                # clamp to reasonable range
+                self.challenge_scroll = max(-1000, min(1000, self.challenge_scroll))
         elif event_type == 'key_press':
             self.on_key_press(event.get('key', ''))
     
@@ -237,7 +245,10 @@ class GameMode:
         
         # Challenge-specific data
         if self.mode_type == "challenge" and self.challenge:
-            data['challenge'] = self.challenge.get_render_data()
+            challenge_data = self.challenge.get_render_data()
+            # Include scroll offset for renderer to display objectives panel
+            challenge_data['scroll_offset'] = self.challenge_scroll
+            data['challenge'] = challenge_data
         
         return data
     
