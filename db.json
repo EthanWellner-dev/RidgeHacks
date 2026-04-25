@@ -25,6 +25,13 @@
 
     },
     "reactions": {
-        
+        "Example": {
+            "reactants": {"H2": 2, "O2": 1},
+            "products": {"H2O": 2},
+            "kc": 1.0,
+            "rate_constant": 1.0,
+            "delta_h": -285.8,
+            "activation_energy": 50.0
+        }
     }
 }

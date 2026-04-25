@@ -31,9 +31,29 @@ class ChemicalState:
     def react(self) -> None:
         """With the addition of a new component, update all reactions and shift chemicals accordingly."""
         
-        # With all current chemicals, look up all relevant reactions that would occur.
-        # If they are already occuring do nothing; if not, add them to the list.
-        # Any non-applicable reactions that are still listed should stop.
+        # Get all current chemical objects
+        current_chemicals = set(self.chemicals.keys())
+        
+        # Check existing reactions - keep only those that can still occur
+        applicable_reactions = []
+        for reaction in self.reactions:
+            # A reaction is applicable if all its reactants are present
+            reactants_available = all(
+                chemical in current_chemicals 
+                for chemical in reaction.reactants.keys()
+            )
+            
+            if reactants_available:
+                applicable_reactions.append(reaction)
+        
+        # Update reactions list to only include applicable ones
+        self.reactions = applicable_reactions
+        
+        # TODO: Integrate with reaction discovery system to add new applicable reactions
+        # based on the current set of chemicals. This would involve:
+        # 1. Querying a reaction database or registry for possible reactions
+        # 2. Checking if each possible reaction is already in self.reactions
+        # 3. Adding new applicable reactions via add_reaction()
         
 
     def add_chemical(self, chemical: Chemical, moles: float) -> None:

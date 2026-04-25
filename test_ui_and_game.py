@@ -3,7 +3,7 @@ test_ui_and_game.py - Tests for UI elements and GameMode integration.
 """
 
 from chemistry.chemical import Chemical
-from flask import Flask
+from chemistry.flask import Flask
 from chemistry.particle_emitter import ParticleEmitter
 from game.dropper import Dropper
 from game.thermometer import Thermometer
@@ -17,7 +17,7 @@ def test_dropper():
     """Test Dropper UI element."""
     print("\n=== Testing Dropper ===")
     
-    h2so4 = Chemical("H2SO4", 0.0, "#FF0000", -813)
+    h2so4 = Chemical("H2SO4", [("H", 2), ("S", 1), ("O", 4)], 0.0, "#FF0000", -813)
     dropper = Dropper(100, 100, h2so4, 0.1, label="Acid")
     
     print(f"Created: {dropper}")
@@ -85,8 +85,8 @@ def test_challenge():
     print("\n=== Testing Challenge ===")
     
     # Create a simple challenge
-    chem1 = Chemical("Acid", 1.0, "#FF0000", -100)
-    chem2 = Chemical("Base", 1.0, "#0000FF", 100)
+    chem1 = Chemical("Acid", [("H", 1), ("Cl", 1)], 1.0, "#FF0000", -100)
+    chem2 = Chemical("Base", [("Na", 1), ("O", 1), ("H", 1)], 1.0, "#0000FF", 100)
     
     challenge = Challenge(
         name="Neutralization",

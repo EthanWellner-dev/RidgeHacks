@@ -25,7 +25,7 @@ Game Logic:
 from chemistry.chemical import Chemical
 from chemistry.reaction import Reaction
 from chemistry.chemical_state import ChemicalState
-from flask import Flask
+from chemistry.flask import Flask
 from chemistry.particle import Particle
 from chemistry.particle_emitter import ParticleEmitter
 from game.dropper import Dropper

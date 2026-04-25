@@ -2,10 +2,10 @@
 test_chemistry.py - Basic tests and demonstration of chemistry objects.
 """
 
-from chemical import Chemical
-from reaction import Reaction
-from chemical_state import ChemicalState
-from flask import Flask
+from chemistry.chemical import Chemical
+from chemistry.reaction import Reaction
+from chemistry.chemical_state import ChemicalState
+from chemistry.flask import Flask
 
 
 def test_chemical():
@@ -61,9 +61,9 @@ def test_chemical_state():
     print(f"Initial state: {state}")
     
     # Add some chemicals
-    h2 = Chemical("H2", 2.0, "#FFFF00", 0)
-    o2 = Chemical("O2", 1.0, "#87CEEB", 0)
-    h2o = Chemical("H2O", 0.0, "#FFFFFF", -285.8)
+    h2 = Chemical("H2", [("H", 2)], 2.0, "#FFFF00", 0)
+    o2 = Chemical("O2", [("O", 2)], 1.0, "#87CEEB", 0)
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8)
     
     state.add_chemical(h2, 2.0)
     state.add_chemical(o2, 1.0)
@@ -102,9 +102,9 @@ def test_flask():
     print(f"Visual data: {flask.get_visual_data()}")
     
     # Add chemicals
-    h2 = Chemical("H2", 2.0, "#FFFF00", 0)
-    o2 = Chemical("O2", 1.0, "#87CEEB", 0)
-    h2o = Chemical("H2O", 0.0, "#FFFFFF", -285.8)
+    h2 = Chemical("H2", [("H", 2)], 2.0, "#FFFF00", 0)
+    o2 = Chemical("O2", [("O", 2)], 1.0, "#87CEEB", 0)
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8)
     
     flask.add_reactant(h2, 2.0)
     flask.add_reactant(o2, 1.0)
