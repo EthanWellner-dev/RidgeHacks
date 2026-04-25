@@ -61,6 +61,32 @@ class PygameRenderer:
             self.assets['full_flask'] = pygame.image.load('assets/flask960.png').convert_alpha()
         except Exception:
             self.assets['full_flask'] = None
+        # Thermometer variants
+        self.assets['thermometerCold'] = None
+        self.assets['thermometer'] = None
+        self.assets['thermometerWarm'] = None
+        self.assets['thermometerHot'] = None
+        try:
+            self.assets['thermometerCold'] = pygame.image.load('assets/thermometerCold.png').convert_alpha()
+        except Exception:
+            pass
+        try:
+            self.assets['thermometer'] = pygame.image.load('assets/thermometer.png').convert_alpha()
+        except Exception:
+            pass
+        try:
+            self.assets['thermometerWarm'] = pygame.image.load('assets/thermometerWarm.png').convert_alpha()
+        except Exception:
+            pass
+        try:
+            self.assets['thermometerHot'] = pygame.image.load('assets/thermometerHot.png').convert_alpha()
+        except Exception:
+            pass
+        # Magnifier asset
+        try:
+            self.assets['magnifier'] = pygame.image.load('assets/magnifier.png').convert_alpha()
+        except Exception:
+            self.assets['magnifier'] = None
     
     def _load_fonts(self) -> None:
         """Load all fonts."""
@@ -119,22 +145,28 @@ class PygameRenderer:
         color_rgb = self._hex_to_rgb(flask_data['color_hex'])
         color_rgb = self._clamp_color(color_rgb)
 
+        # Draw liquid first (so outline image overlays it)
+        try:
+            pygame.draw.rect(self.screen, color_rgb, (inner_x, inner_y + inner_h * 0.15, inner_w, inner_h * 0.8))
+        except Exception:
+            pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
+
+        # Then draw flask outline image on top if available (prevents 'hole' artifacts)
         if self.assets.get('empty_flask'):
             try:
                 img = pygame.transform.smoothscale(self.assets['empty_flask'], (width, height))
                 self.screen.blit(img, (x, y))
-                # draw liquid inside as colored rect slightly inset
-                pygame.draw.rect(self.screen, color_rgb, (inner_x, inner_y + inner_h * 0.15, inner_w, inner_h * 0.8))
             except Exception:
-                pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
+                # fallback border
+                border_color = (0, 0, 0) if not flask_data['is_boiling'] else (255, 0, 0)
+                border_width = 4 if flask_data['is_boiling'] else 3
+                pygame.draw.rect(self.screen, border_color, (x, y, width, height), border_width)
         else:
-            # Fallback: simple colored rectangle
+            # Fallback: simple colored rectangle and border
             pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
-
-        # Flask border
-        border_color = (0, 0, 0) if not flask_data['is_boiling'] else (255, 0, 0)
-        border_width = 4 if flask_data['is_boiling'] else 3
-        pygame.draw.rect(self.screen, border_color, (x, y, width, height), border_width)
+            border_color = (0, 0, 0) if not flask_data['is_boiling'] else (255, 0, 0)
+            border_width = 4 if flask_data['is_boiling'] else 3
+            pygame.draw.rect(self.screen, border_color, (x, y, width, height), border_width)
         
         # Boiling effect (animated shimmer)
         if flask_data['is_boiling']:
@@ -202,10 +234,18 @@ class PygameRenderer:
         color = self._hex_to_rgb(dropper_data['color'])
         border_color = self._hex_to_rgb(dropper_data['border_color'])
         
-        # Draw button
-        pygame.draw.rect(self.screen, color, (x, y, width, height))
-        pygame.draw.rect(self.screen, border_color, (x, y, width, height), 
-                        int(dropper_data['border_width']))
+        # Draw flask image for dropper if available
+        if self.assets.get('full_flask'):
+            try:
+                img = pygame.transform.smoothscale(self.assets['full_flask'], (width, height))
+                self.screen.blit(img, (x, y))
+            except Exception:
+                pygame.draw.rect(self.screen, color, (x, y, width, height))
+                pygame.draw.rect(self.screen, border_color, (x, y, width, height), int(dropper_data['border_width']))
+        else:
+            # Draw button
+            pygame.draw.rect(self.screen, color, (x, y, width, height))
+            pygame.draw.rect(self.screen, border_color, (x, y, width, height), int(dropper_data['border_width']))
         
         # Draw label
         label = self._to_subscript(dropper_data['label'])
@@ -400,10 +440,24 @@ class PygameRenderer:
         inner_y += 28
 
         # Draw thermometer image if asset exists
-        if self.assets.get('full_flask') is not None:
-            # placeholder: use full_flask as thermometer substitute if thermometer image not provided
+        # Select thermometer asset based on temperature
+        therm_img = None
+        if temp < 280 and self.assets.get('thermometerCold') is not None:
+            therm_img = self.assets['thermometerCold']
+        elif temp < 300 and self.assets.get('thermometer') is not None:
+            therm_img = self.assets['thermometer']
+        elif temp < 340 and self.assets.get('thermometerWarm') is not None:
+            therm_img = self.assets['thermometerWarm']
+        elif self.assets.get('thermometerHot') is not None:
+            therm_img = self.assets['thermometerHot']
+
+        if therm_img is None:
+            # fallback: try full_flask as placeholder
+            therm_img = self.assets.get('full_flask')
+
+        if therm_img is not None:
             try:
-                img = pygame.transform.smoothscale(self.assets['full_flask'], (40, 120))
+                img = pygame.transform.smoothscale(therm_img, (40, 120))
                 self.screen.blit(img, (inner_x, inner_y))
             except Exception:
                 pass

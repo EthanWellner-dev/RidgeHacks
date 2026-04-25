@@ -192,6 +192,13 @@ class GameApplication:
         # Ensure UI elements include droppers
         for d in challenge_droppers:
             self.game_mode.ui_elements.insert(0, d)
+
+        # Position the draggable pH strip in the right sidebar area
+        sidebar_w = 300
+        sidebar_x = int(self.width - sidebar_w - 20)
+        if hasattr(self.game_mode, 'ph_strip') and self.game_mode.ph_strip is not None:
+            self.game_mode.ph_strip['x'] = sidebar_x + 20
+            self.game_mode.ph_strip['y'] = 120
     
     def handle_events(self) -> None:
         """Handle pygame events."""
