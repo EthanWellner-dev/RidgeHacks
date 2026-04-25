@@ -229,8 +229,8 @@ class ChallengeLibrary:
         Challenge 1: Shift the color from yellow to orange by adjusting pH.
         """
         # Chromate/dichromate color shift (simplified)
-        chromate = Chemical("Chromate", [("Cr", 1), ("O", 4)], 0.5, "#FFD700", 0)  # Yellow
-        acid = Chemical("H+", [("H", 1)], 0.0, "#FFFFFF", 0)
+        chromate = Chemical("CrO4^2-(aq)", [("Cr", 1), ("O", 4)], 0.5, "#FFD700", 0, "aqueous")  # Yellow
+        acid = Chemical("H+(aq)", [("H", 1)], 0.0, "#FFFFFF", 0, "aqueous")
         
         return Challenge(
             name="Color Shift",

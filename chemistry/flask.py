@@ -134,7 +134,7 @@ class Flask:
         
         return {
             'color_hex': self.color_hex,
-            'temperature': self.chemical_state.temperature,
+            'temperature': self.chemical_state.get_average_temperature(),
             'temperature_max': self.max_temperature,
             'particle_count': particle_count,
             'is_boiling': self.is_boiling,

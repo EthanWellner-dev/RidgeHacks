@@ -258,6 +258,58 @@
             "state": "gas",
             "color_hex": "#808080",
             "enthalpy": 0.0
+        },
+        "CrO4^2-(aq)": {
+            "components": [
+                [
+                    "Cr",
+                    1
+                ],
+                [
+                    "O",
+                    4
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#FFD700",
+            "enthalpy": 0.0
+        },
+        "Cr2O7^2-(aq)": {
+            "components": [
+                [
+                    "Cr",
+                    2
+                ],
+                [
+                    "O",
+                    7
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#FFA500",
+            "enthalpy": 0.0
+        },
+        "H+(aq)": {
+            "components": [
+                [
+                    "H",
+                    1
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#FFFFFF",
+            "enthalpy": 0.0
+        },
+        "Cl-(aq)": {
+            "components": [
+                [
+                    "Cl",
+                    1
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#FFFFFF",
+            "enthalpy": 0.0
         }
     },
     "reactions": {
@@ -326,6 +378,33 @@
             "rate_constant": 100.0,
             "delta_h": -5.0,
             "activation_energy": 15.0
+        },
+        "Chromate-Dichromate Equilibrium": {
+            "reactants": {
+                "CrO4^2-(aq)": 2,
+                "H+(aq)": 2
+            },
+            "products": {
+                "Cr2O7^2-(aq)": 1,
+                "H2O(l)": 1
+            },
+            "kc": 100.0,
+            "rate_constant": 1000.0,
+            "delta_h": -10.0,
+            "activation_energy": 25.0
+        },
+        "HCl Dissociation": {
+            "reactants": {
+                "HCl(aq)": 1
+            },
+            "products": {
+                "H+(aq)": 1,
+                "Cl-(aq)": 1
+            },
+            "kc": 1000000.0,
+            "rate_constant": 10000.0,
+            "delta_h": 0.0,
+            "activation_energy": 10.0
         }
     }
 }
