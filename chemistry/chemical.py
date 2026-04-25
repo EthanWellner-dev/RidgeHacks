@@ -29,6 +29,43 @@ class Chemical:
         self.concentration = 0.0  # M (will be calculated from moles/volume)
         self.temperature = 293.15  # Temperature in Kelvin (starts at room temperature)
         self.heat_capacity = 4.184  # J/g·K (water equivalent, can be overridden for other substances)
+        
+        # Auto-populate thermodynamic properties for single-element chemicals
+        self._auto_populate_properties()
+    
+    def _auto_populate_properties(self) -> None:
+        """
+        Auto-populate thermodynamic properties using mendeleev for single-element chemicals.
+        Only works for chemicals with exactly one component (pure elements).
+        """
+        # Only auto-populate for single-element chemicals
+        if len(self.components) != 1:
+            return
+        
+        element_symbol, count = self.components[0]
+        
+        try:
+            element = mendeleev.element(element_symbol)
+            
+            # Set heat capacity (specific heat) if available
+            # Use specific_heat which is in J/g·K
+            if hasattr(element, 'specific_heat') and element.specific_heat is not None:
+                specific_heat = element.specific_heat
+                # Only override default if we get a reasonable value
+                if 0.1 < specific_heat < 10.0:  # Reasonable range for specific heat capacity
+                    self.heat_capacity = specific_heat
+            
+            # Set enthalpy of formation if not provided (enthalpy == 0)
+            # Use heat_of_formation which is in kJ/mol
+            if self.enthalpy == 0.0 and hasattr(element, 'heat_of_formation') and element.heat_of_formation is not None:
+                enthalpy_kj_per_mol = element.heat_of_formation
+                # Scale by stoichiometry (count) for molecular formulas like H2, O2
+                if abs(enthalpy_kj_per_mol) < 10000:  # Reasonable range check
+                    self.enthalpy = enthalpy_kj_per_mol * count
+            
+        except (AttributeError, TypeError, ValueError) as e:
+            # Silently fail if mendeleev lookup fails - use provided/default values
+            pass
     
     def set_moles(self, moles: float) -> None:
         """Set molar amount (clamped to 0)."""

@@ -23,108 +23,309 @@
     },
     "molecules": {
         "H2(g)": {
-            "components": [["H", 2]],
+            "components": [
+                [
+                    "H",
+                    2
+                ]
+            ],
             "state": "gas",
             "color_hex": "#FFFF00",
             "enthalpy": 0.0
         },
         "O2(g)": {
-            "components": [["O", 2]],
+            "components": [
+                [
+                    "O",
+                    2
+                ]
+            ],
             "state": "gas",
             "color_hex": "#87CEEB",
             "enthalpy": 0.0
         },
         "H2O(g)": {
-            "components": [["H", 2], ["O", 1]],
+            "components": [
+                [
+                    "H",
+                    2
+                ],
+                [
+                    "O",
+                    1
+                ]
+            ],
             "state": "gas",
             "color_hex": "#E0E0E0",
             "enthalpy": -241.8
         },
         "H2O(l)": {
-            "components": [["H", 2], ["O", 1]],
+            "components": [
+                [
+                    "H",
+                    2
+                ],
+                [
+                    "O",
+                    1
+                ]
+            ],
             "state": "liquid",
             "color_hex": "#87CEEB",
             "enthalpy": -285.8
         },
         "H+(aq)": {
-            "components": [["H", 1]],
+            "components": [
+                [
+                    "H",
+                    1
+                ]
+            ],
             "state": "aqueous",
             "color_hex": "#FFFFFF",
             "enthalpy": 0.0
         },
         "OH-(aq)": {
-            "components": [["O", 1], ["H", 1]],
+            "components": [
+                [
+                    "O",
+                    1
+                ],
+                [
+                    "H",
+                    1
+                ]
+            ],
             "state": "aqueous",
             "color_hex": "#FFFFFF",
             "enthalpy": -229.9
         },
         "H2SO4(l)": {
-            "components": [["H", 2], ["S", 1], ["O", 4]],
+            "components": [
+                [
+                    "H",
+                    2
+                ],
+                [
+                    "S",
+                    1
+                ],
+                [
+                    "O",
+                    4
+                ]
+            ],
             "state": "liquid",
             "color_hex": "#FF0000",
             "enthalpy": -813.0
         },
         "NaOH(s)": {
-            "components": [["Na", 1], ["O", 1], ["H", 1]],
+            "components": [
+                [
+                    "Na",
+                    1
+                ],
+                [
+                    "O",
+                    1
+                ],
+                [
+                    "H",
+                    1
+                ]
+            ],
             "state": "solid",
             "color_hex": "#FFFFFF",
             "enthalpy": -427.0
         },
         "HCl(g)": {
-            "components": [["H", 1], ["Cl", 1]],
+            "components": [
+                [
+                    "H",
+                    1
+                ],
+                [
+                    "Cl",
+                    1
+                ]
+            ],
             "state": "gas",
             "color_hex": "#FF6666",
             "enthalpy": -92.3
         },
         "NH3(g)": {
-            "components": [["N", 1], ["H", 3]],
+            "components": [
+                [
+                    "N",
+                    1
+                ],
+                [
+                    "H",
+                    3
+                ]
+            ],
             "state": "gas",
             "color_hex": "#CCCCFF",
             "enthalpy": -45.9
         },
         "NaOH(aq)": {
-            "components": [["Na", 1], ["O", 1], ["H", 1]],
+            "components": [
+                [
+                    "Na",
+                    1
+                ],
+                [
+                    "O",
+                    1
+                ],
+                [
+                    "H",
+                    1
+                ]
+            ],
             "state": "aqueous",
             "color_hex": "#AAAAFF",
             "enthalpy": -470.1
         },
         "H2O2(l)": {
-            "components": [["H", 2], ["O", 2]],
+            "components": [
+                [
+                    "H",
+                    2
+                ],
+                [
+                    "O",
+                    2
+                ]
+            ],
             "state": "liquid",
             "color_hex": "#CCCCCC",
             "enthalpy": -187.8
         },
         "MnO2(s)": {
-            "components": [["Mn", 1], ["O", 2]],
+            "components": [
+                [
+                    "Mn",
+                    1
+                ],
+                [
+                    "O",
+                    2
+                ]
+            ],
             "state": "solid",
             "color_hex": "#404040",
             "enthalpy": -520.0
+        },
+        "HCl(aq)": {
+            "components": [
+                [
+                    "H",
+                    1
+                ],
+                [
+                    "Cl",
+                    1
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#FFFFFF",
+            "enthalpy": 0.0
+        },
+        "NaCl(aq)": {
+            "components": [],
+            "state": "gas",
+            "color_hex": "#808080",
+            "enthalpy": 0.0
+        },
+        "CO2(g)": {
+            "components": [
+                [
+                    "C",
+                    1
+                ],
+                [
+                    "O",
+                    2
+                ]
+            ],
+            "state": "gas",
+            "color_hex": "#FFFFFF",
+            "enthalpy": 0.0
+        },
+        "CO2(aq)": {
+            "components": [],
+            "state": "gas",
+            "color_hex": "#808080",
+            "enthalpy": 0.0
         }
     },
     "reactions": {
         "Hydrogen Combustion": {
-            "reactants": {"H2(g)": 2, "O2(g)": 1},
-            "products": {"H2O(g)": 2},
-            "kc": 1e30,
+            "reactants": {
+                "H2(g)": 2,
+                "O2(g)": 1
+            },
+            "products": {
+                "H2O(g)": 2
+            },
+            "kc": 1e+30,
             "rate_constant": 0.1,
             "delta_h": -285.8,
             "activation_energy": 50.0
         },
         "Water Formation": {
-            "reactants": {"H2(g)": 2, "O2(g)": 1},
-            "products": {"H2O(l)": 2},
-            "kc": 1e40,
+            "reactants": {
+                "H2(g)": 2,
+                "O2(g)": 1
+            },
+            "products": {
+                "H2O(l)": 2
+            },
+            "kc": 1e+40,
             "rate_constant": 0.05,
             "delta_h": -571.6,
             "activation_energy": 75.0
         },
         "Acid Base Neutralization": {
-            "reactants": {"H+(aq)": 1, "OH-(aq)": 1},
-            "products": {"H2O(l)": 1},
-            "kc": 1e14,
-            "rate_constant": 1e10,
+            "reactants": {
+                "H+(aq)": 1,
+                "OH-(aq)": 1
+            },
+            "products": {
+                "H2O(l)": 1
+            },
+            "kc": 100000000000000.0,
+            "rate_constant": 10000000000.0,
             "delta_h": -55.8,
             "activation_energy": 10.0
+        },
+        "HCl(aq) + NaOH(aq) \u2192 H2O(l) + NaCl(aq)": {
+            "reactants": {
+                "HCl(aq)": 1,
+                "NaOH(aq)": 1
+            },
+            "products": {
+                "H2O(l)": 1,
+                "NaCl(aq)": 1
+            },
+            "kc": 100000000000000.0,
+            "rate_constant": 1000000.0,
+            "delta_h": -50.0,
+            "activation_energy": 20.0
+        },
+        "CO2(g) \u21cc CO2(aq)": {
+            "reactants": {
+                "CO2(g)": 1,
+                "H2O(l)": 1
+            },
+            "products": {
+                "CO2(aq)": 1
+            },
+            "kc": 0.1,
+            "rate_constant": 100.0,
+            "delta_h": -5.0,
+            "activation_energy": 15.0
         }
     }
 }
