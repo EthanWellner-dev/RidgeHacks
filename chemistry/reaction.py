@@ -16,9 +16,9 @@ class Reaction:
         name: str,
         reactants: dict,
         products: dict,
-        kc: float,
-        rate_constant: float,
-        delta_h: float,
+        kc: float = -1.0,
+        rate_constant: float = -1.0,
+        delta_h: float = -1.0,
         activation_energy: float = 50.0):
         """
         Initialize a reaction.

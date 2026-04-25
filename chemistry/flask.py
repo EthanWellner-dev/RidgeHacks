@@ -62,7 +62,7 @@ class Flask:
             catalyst_factor: Reaction rate multiplier (1.0 = no effect)
         """
         self.chemical_state.set_catalyst_factor(catalyst_factor)
-    
+
     def set_temperature(self, temp: float) -> None:
         """
         Manually set temperature (e.g., via hotplate).

@@ -28,6 +28,14 @@ class ChemicalState:
         self.reactions = []      # [Reaction, ...]
         self.catalyst_factor = 1.0
     
+    def react(self) -> None:
+        """With the addition of a new component, update all reactions and shift chemicals accordingly."""
+        
+        # With all current chemicals, look up all relevant reactions that would occur.
+        # If they are already occuring do nothing; if not, add them to the list.
+        # Any non-applicable reactions that are still listed should stop.
+        
+
     def add_chemical(self, chemical: Chemical, moles: float) -> None:
         """
         Add or update a chemical in the state.
