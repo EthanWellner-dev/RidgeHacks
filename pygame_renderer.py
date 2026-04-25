@@ -42,7 +42,13 @@ class PygameRenderer:
             'small': 12,
             'medium': 16,
             'large': 24,
-            'title': 36
+            'title': 60
+        }
+        self.font_paths = {
+            "small": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoC.ttf"),
+            "medium": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoC.ttf"),
+            "large": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoC.ttf"),
+            "title": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoCBold.ttf")
         }
         
         # --- ADDED LOGIC: State trackers for temperature changes ---
@@ -103,7 +109,7 @@ class PygameRenderer:
     def _load_fonts(self) -> None:
         """Load all fonts."""
         for name, size in self.font_sizes.items():
-            self.fonts[name] = pygame.font.Font(os.path.join(os.path.dirname(__file__), "assets", "RobotoC.ttf"), size)
+            self.fonts[name] = pygame.font.Font(self.font_paths[name], size)
 
     def _hex_to_rgb(self, hex_color: str) -> Tuple[int, int, int]:
         """
