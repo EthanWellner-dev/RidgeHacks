@@ -120,9 +120,14 @@ class Reaction:
         Args:
             reaction_extent: Amount reacted in moles
         Returns:
-            Heat change in kJ (positive = exothermic/heat released)
+            Heat change in kJ (positive = heat released to surroundings).
+            Note: `delta_h` is interpreted as reaction enthalpy ΔH in kJ/mol (negative = exothermic).
         """
-        return self.delta_h * reaction_extent
+        # Convention: negative ΔH = exothermic. Heat released to surroundings = -ΔH * extent
+        try:
+            return -float(self.delta_h) * float(reaction_extent)
+        except Exception:
+            return 0.0
 
     def describe_equilibrium(self) -> dict:
         """Return a human-friendly description of the equilibrium state for this reaction."""

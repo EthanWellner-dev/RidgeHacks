@@ -34,6 +34,8 @@ class ChemicalState:
         
         # Set initial temperature for all chemicals
         self._initial_temperature = temperature
+        # Expose current state temperature (average/system temperature).
+        self.temperature = float(temperature)
     
     def react(self) -> None:
         """With the addition of a new component, update all reactions and shift chemicals accordingly."""
@@ -352,12 +354,24 @@ class ChemicalState:
         """Check if a chemical can act as an acid."""
         # Simple heuristics
         acid_indicators = ['HCl', 'H2SO4', 'HNO3', 'CH3COOH', 'H+']
-        return any(indicator in chemical.name for indicator in acid_indicators)
+        name = getattr(chemical, 'name', '')
+        if any(indicator in name for indicator in acid_indicators):
+            return True
+        # Heuristic: formulas beginning with H (but not H2O) are likely acids (HF, HBr, etc.)
+        if name.startswith('H') and not name.upper().startswith('H2O'):
+            return True
+        return False
     
     def _is_base(self, chemical: Chemical) -> bool:
         """Check if a chemical can act as a base."""
         base_indicators = ['OH-', 'NaOH', 'KOH', 'Ca(OH)2', 'NH3']
-        return any(indicator in chemical.name for indicator in base_indicators)
+        name = getattr(chemical, 'name', '')
+        if any(indicator in name for indicator in base_indicators):
+            return True
+        # Heuristic: presence of 'OH' in formula often indicates a base
+        if 'OH' in name and not name.endswith('O'):
+            return True
+        return False
     
     def _is_oxidizer(self, chemical: Chemical) -> bool:
         """Check if a chemical can act as an oxidizing agent."""
@@ -664,7 +678,7 @@ class ChemicalState:
             # Create a basic chemical with empty components (will need manual definition)
             chemical = Chemical(
                 name=name,
-                components=[],  # Empty components - needs to be defined manually
+                components=None,  # Let Chemical attempt to parse the formula
                 moles=0.0,
                 color_hex="#808080",  # Gray for unknown
                 enthalpy=0.0,
@@ -680,7 +694,7 @@ class ChemicalState:
         # 3. Adding new applicable reactions via add_reaction()
         
 
-    def add_chemical(self, chemical: Chemical, moles: float) -> None:
+    def add_chemical(self, chemical: Chemical, moles: float, trigger_react: bool = True) -> None:
         """
         Add or update a chemical in the state.
         
@@ -688,17 +702,23 @@ class ChemicalState:
             chemical: Chemical object to add
             moles: Moles to add (or total if new)
         """
+        # Backwards compatible parameter `trigger_react` controls whether adding a chemical
+        # should invoke reaction discovery. Internal updates can pass False to avoid
+        # mutating reaction lists during an update loop.
+
         if chemical not in self.chemicals:
             self.chemicals[chemical] = 0.0
             # Set initial temperature for new chemicals
             chemical.set_temperature(self._initial_temperature)
-        
+
         self.chemicals[chemical] += moles
         self.chemicals[chemical] = max(0, self.chemicals[chemical])
-        
-        # Update concentration immediately
+
+        # Update concentration immediately (use effective volume later)
         chemical.update_concentration(self.volume)
-        self.react()  # Check for reaction updates after adding chemical
+
+        if trigger_react:
+            self.react()  # Check for reaction updates after adding chemical
     
     def add_reaction(self, reaction: Reaction) -> None:
         """Add a reaction to the system."""
@@ -732,12 +752,16 @@ class ChemicalState:
         # Compute effective volume: include water contributions as solvent
         water_moles = 0.0
         for chemical in self.chemicals.keys():
-            if getattr(chemical, 'name', '').upper() in ('H2O', 'WATER'):
+            name = getattr(chemical, 'name', '')
+            # Treat variants like 'H2O', 'H2O(l)', 'H2O(aq)' and common name 'water' as solvent
+            if 'H2O' in name.upper() or 'WATER' in name.upper():
                 water_moles += self.chemicals.get(chemical, 0.0)
 
         # Approximate: 1 mol H2O ≈ 0.018 L (18 g, density ≈1 g/mL)
         extra_vol = water_moles * 0.018
-        self.effective_volume = max(self.volume, self.volume + extra_vol)
+        # Treat `self.volume` as the current liquid base volume (L). Effective liquid volume
+        # is base liquid plus water contribution from dissolved water moles.
+        self.effective_volume = max(1e-12, float(self.volume) + extra_vol)
 
         for chemical in self.chemicals.keys():
             # Sync chemical object's molar amount with the stored amount
@@ -757,57 +781,98 @@ class ChemicalState:
         Returns:
             dict with 'total_heat_change' (kJ) and 'reactions_fired'
         """
-        self.update_concentrations()
-        
-        # Update temperatures using Newton's law
-        for chemical in self.chemicals.keys():
-            chemical.update_temperature(delta_time, ambient_temp)
-        
+        # Use sub-stepping to improve numerical stability (reduce Euler overshoot).
+        max_step = 0.1
+        steps = max(1, int((delta_time / max_step) + 0.9999))
+        dt = float(delta_time) / steps
+
         total_heat_change = 0.0
         reactions_fired = []
-        
-        for reaction in self.reactions:
-            # Determine reaction direction
-            direction = reaction.calculate_shift()
 
-            if direction == "equilibrium":
-                continue
-            
-            # Calculate average temperature of reactants for reaction rate
-            reactant_temps = [chem.temperature for chem in reaction.reactants.keys() if chem in self.chemicals]
-            avg_temp = sum(reactant_temps) / len(reactant_temps) if reactant_temps else ambient_temp
-            
-            # Calculate reaction rate
-            rate = reaction.calculate_rate(avg_temp, self.catalyst_factor)
-            
-            # Calculate extent of reaction for this time step
-            reaction_extent = rate * delta_time
-            
-            # Clamp extent to physically reasonable value
-            reaction_extent = min(reaction_extent, 0.1)
-            
-            if reaction_extent > 0:
+        for _ in range(steps):
+            # Recompute concentrations each substep
+            self.update_concentrations()
+
+            # Update temperatures using Newton's law per substep
+            for chemical in list(self.chemicals.keys()):
+                chemical.update_temperature(dt, ambient_temp)
+
+            for reaction in list(self.reactions):
+                direction = reaction.calculate_shift()
+                if direction == 'equilibrium':
+                    continue
+
+                # Estimate temperature for kinetics: use heat-capacity-weighted avg of reactants
+                reactant_chems = [chem for chem in reaction.reactants.keys() if chem in self.chemicals]
+                if reactant_chems:
+                    # weight by mass*cp
+                    heats = []
+                    for chem in reactant_chems:
+                        mass = max(1e-12, chem.get_mass())
+                        heats.append((chem.temperature, mass * chem.heat_capacity))
+                    total_h = sum(h for _, h in heats)
+                    if total_h > 0:
+                        avg_temp = sum(t * h for t, h in heats) / total_h
+                    else:
+                        avg_temp = ambient_temp
+                else:
+                    avg_temp = ambient_temp
+
+                rate = reaction.calculate_rate(avg_temp, self.catalyst_factor)
+                desired_extent = rate * dt
+
+                # Determine limiting reactant extent (so no negative amounts)
+                max_extent = float('inf')
+                for chem, coeff in reaction.reactants.items():
+                    avail = self.chemicals.get(chem, 0.0)
+                    if coeff > 0:
+                        max_extent = min(max_extent, avail / coeff)
+
+                if max_extent == float('inf'):
+                    max_extent = 0.0
+
+                extent = min(desired_extent, max_extent)
+                # Clamp a reasonable maximum per step to avoid huge jumps
+                extent = min(extent, 0.1)
+
+                if extent <= 0:
+                    continue
+
                 reactions_fired.append(reaction.name)
 
+                # Apply stoichiometry for forward/reverse
                 if direction == 'forward':
-                    # Consume reactants
-                    for chemical, coeff in reaction.reactants.items():
-                        self.add_chemical(chemical, -coeff * reaction_extent)
-                    # Produce products (if specified)
-                    for chemical, coeff in (reaction.products or {}).items():
-                        self.add_chemical(chemical, coeff * reaction_extent)
+                    for chem, coeff in reaction.reactants.items():
+                        self.add_chemical(chem, -coeff * extent, trigger_react=False)
+                    for chem, coeff in (reaction.products or {}).items():
+                        self.add_chemical(chem, coeff * extent, trigger_react=False)
 
-                    heat_change = reaction.get_heat_change(reaction_extent)
+                    heat_kj = reaction.get_heat_change(extent)
+                else:
+                    for chem, coeff in (reaction.products or {}).items():
+                        self.add_chemical(chem, -coeff * extent, trigger_react=False)
+                    for chem, coeff in reaction.reactants.items():
+                        self.add_chemical(chem, coeff * extent, trigger_react=False)
 
-                else:  # reverse
-                    for chemical, coeff in (reaction.products or {}).items():
-                        self.add_chemical(chemical, -coeff * reaction_extent)
-                    for chemical, coeff in reaction.reactants.items():
-                        self.add_chemical(chemical, coeff * reaction_extent)
+                    heat_kj = -reaction.get_heat_change(extent)
 
-                    heat_change = -reaction.get_heat_change(reaction_extent)
+                # Apply heat to system immediately for this substep
+                total_heat_change += heat_kj
 
-                total_heat_change += heat_change
+                if abs(heat_kj) > 1e-12:
+                    # Compute total heat capacity (J/K) of mixture
+                    total_cp = 0.0
+                    for c in self.chemicals.keys():
+                        mass_g = max(0.0, c.get_mass())
+                        total_cp += mass_g * max(1e-12, c.heat_capacity)
+
+                    # Convert kJ to J
+                    q_joules = heat_kj * 1000.0
+                    if total_cp > 0:
+                        delta_T = q_joules / total_cp
+                        # Apply same ΔT to all chemicals (they equilibrate thermally)
+                        for c in self.chemicals.keys():
+                            c.adjust_temperature(delta_T)
         
         # Update concentrations after reactions
         self.update_concentrations()
@@ -828,52 +893,83 @@ class ChemicalState:
         if not self.chemicals:
             return "#FFFFFF"  # Default white
         
-        total_concentration = sum(c.concentration for c in self.chemicals.keys())
-        
+        # Beer-Lambert-like blending: convert per-chemical RGB to per-channel absorbance,
+        # scale by concentration (proxy for ε·l·c), sum absorbances, then convert back to
+        # transmittance and RGB. This better preserves strong colors under dilution.
+        total_concentration = sum(max(0.0, c.concentration) for c in self.chemicals.keys())
         if total_concentration == 0:
             return "#FFFFFF"
-        
-        # Convert hex to RGB, weight by concentration, average
-        r_sum = 0.0
-        g_sum = 0.0
-        b_sum = 0.0
-        
-        for chemical, _ in self.chemicals.items():
-            weight = chemical.concentration / total_concentration
-            
+
+        import math
+
+        A_r = 0.0
+        A_g = 0.0
+        A_b = 0.0
+
+        for chemical in self.chemicals.keys():
+            conc = max(0.0, chemical.concentration)
             # Parse hex color
             hex_color = chemical.color_hex.lstrip('#')
-            r = int(hex_color[0:2], 16)
-            g = int(hex_color[2:4], 16)
-            b = int(hex_color[4:6], 16)
-            
-            r_sum += r * weight
-            g_sum += g * weight
-            b_sum += b * weight
-        
-        # Convert back to hex
-        r = int(round(r_sum))
-        g = int(round(g_sum))
-        b = int(round(b_sum))
-        
-        return f"#{r:02X}{g:02X}{b:02X}"
+            try:
+                r = int(hex_color[0:2], 16) / 255.0
+                g = int(hex_color[2:4], 16) / 255.0
+                b = int(hex_color[4:6], 16) / 255.0
+            except Exception:
+                r, g, b = 0.5, 0.5, 0.5
+
+            # Avoid zero transmittance; interpret darker colors as lower transmittance
+            t_r = max(1e-6, r)
+            t_g = max(1e-6, g)
+            t_b = max(1e-6, b)
+
+            # Absorbance (proxy) per channel
+            a_r = -math.log(t_r)
+            a_g = -math.log(t_g)
+            a_b = -math.log(t_b)
+
+            # Scale absorbance by concentration (ε·l factor approximated by 1.0)
+            A_r += a_r * conc
+            A_g += a_g * conc
+            A_b += a_b * conc
+
+        # Convert back to transmittance and rgb
+        T_r = math.exp(-A_r)
+        T_g = math.exp(-A_g)
+        T_b = math.exp(-A_b)
+
+        R = int(max(0, min(255, round(T_r * 255))))
+        G = int(max(0, min(255, round(T_g * 255))))
+        B = int(max(0, min(255, round(T_b * 255))))
+
+        return f"#{R:02X}{G:02X}{B:02X}"
     
     def get_average_temperature(self) -> float:
         """
-        Calculate the average temperature of all chemicals weighted by moles.
+        Calculate the average temperature of all chemicals weighted by thermal mass (mass * specific heat).
         
         Returns:
             Average temperature in Kelvin
         """
         if not self.chemicals:
-            return 293.15  # Room temperature default
-        
-        total_moles = sum(self.chemicals.values())
-        if total_moles == 0:
             return 293.15
-        
-        weighted_temp = sum(chem.temperature * moles for chem, moles in self.chemicals.items())
-        return weighted_temp / total_moles
+
+        # Weight by mass * heat capacity (J/K)
+        total_heatcap = 0.0
+        weighted_temp = 0.0
+        for chem, moles in self.chemicals.items():
+            mass = chem.get_mass()
+            cp = max(1e-12, chem.heat_capacity)
+            heatcap = mass * cp
+            total_heatcap += heatcap
+            weighted_temp += chem.temperature * heatcap
+
+        if total_heatcap > 0:
+            return weighted_temp / total_heatcap
+        # Fallback to mole-weighted
+        total_moles = sum(self.chemicals.values())
+        if total_moles <= 0:
+            return 293.15
+        return sum(chem.temperature * moles for chem, moles in self.chemicals.items()) / total_moles
     
     def get_net_temperature_change(self) -> float:
         """

@@ -12,6 +12,9 @@ Represents a single chemical substance in the system. Stores the name, current m
 - Enthalpy (kJ/mol)
 - Concentration (derived from moles/volume)
 
+Note: The `Chemical` constructor now accepts either an explicit `components` list or will parse a formula string like `H2O`.
+Common typos such as `H20` (zero for letter O) are normalized during parsing.
+
 **Planned Methods:**
 - `get_component_details()` - Returns display information about the chemical (name, concentration, color, properties). **Not yet implemented.**
 

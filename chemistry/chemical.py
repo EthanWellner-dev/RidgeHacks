@@ -1,17 +1,19 @@
 """
 Chemical - Represents a single chemical substance in the system.
 """
+import re
 import mendeleev
 
 class Chemical:
     """
     A chemical substance with molar quantity, color representation, and thermodynamic properties.
+    Supports flexible construction: pass `components` list or let the class parse a formula string.
     """
     
-    def __init__(self, name: str, components: list, moles: float, color_hex: str, enthalpy: float, state: str = "gas"):
+    def __init__(self, name: str, components: list | None = None, moles: float = 0.0, color_hex: str = "#FFFFFF", enthalpy: float = 0.0, state: str = "gas", volume: float | None = None):
         """
         Initialize a chemical.
-        
+
         Args:
             name: Chemical identifier (e.g., "H2O", "H2SO4")
             components: A list of tuples (element_symbol, count) representing the chemical formula
@@ -19,17 +21,24 @@ class Chemical:
             color_hex: Hex color code for visualization (e.g., "#FFD700")
             enthalpy: Molar enthalpy in kJ/mol
             state: Physical state ("gas", "liquid", "solid", "aqueous")
+            volume: Optional per-chemical volume hint (L)
         """
         self.name = name
-        self.components = components
-        self.moles = max(0, moles)  # Cannot have negative moles
+        # Allow components to be omitted — parse from name if not provided
+        if components is None:
+            self.components = self._parse_formula(name)
+        else:
+            self.components = components
+
+        self.moles = max(0, float(moles))  # Cannot have negative moles
         self.color_hex = color_hex
         self.enthalpy = enthalpy
         self.state = state  # Physical state: gas, liquid, solid, aqueous
         self.concentration = 0.0  # M (will be calculated from moles/volume)
         self.temperature = 293.15  # Temperature in Kelvin (starts at room temperature)
         self.heat_capacity = 4.184  # J/g·K (water equivalent, can be overridden for other substances)
-        
+        self.volume = float(volume) if volume is not None else None
+
         # Auto-populate thermodynamic properties for single-element chemicals
         self._auto_populate_properties()
     
@@ -66,6 +75,41 @@ class Chemical:
         except (AttributeError, TypeError, ValueError) as e:
             # Silently fail if mendeleev lookup fails - use provided/default values
             pass
+
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        """Normalize chemical name for comparisons (fix common typos like 'H20' -> 'H2O')."""
+        if not isinstance(name, str):
+            return str(name)
+        # Replace common zero-for-O typo when it looks like a formula (e.g., H20)
+        if re.match(r'^[A-Za-z0-9()]+$', name) and '0' in name:
+            alt = name.replace('0', 'O')
+            return alt.upper()
+        return name.upper()
+
+    @staticmethod
+    def _parse_formula(formula: str) -> list:
+        """Very small formula parser returning list of (element, count).
+        Falls back to a single-component entry if parsing fails.
+        """
+        if not formula or not isinstance(formula, str):
+            return []
+
+        # Try to correct a common typo: zero instead of letter-O
+        if '0' in formula and 'O' not in formula:
+            formula = formula.replace('0', 'O')
+
+        # Regex to capture element symbols and optional counts, e.g. H2, Na, O
+        token_re = re.compile(r'([A-Z][a-z]?)(\d*)')
+        tokens = token_re.findall(formula)
+        if not tokens:
+            return []
+
+        components = []
+        for sym, count in tokens:
+            cnt = int(count) if count else 1
+            components.append((sym, cnt))
+        return components
     
     def set_moles(self, moles: float) -> None:
         """Set molar amount (clamped to 0)."""
@@ -83,7 +127,7 @@ class Chemical:
             volume: Container volume in liters
         """
         # If this chemical has its own volume hint use that, otherwise use container volume
-        effective_vol = self.volume if (self.volume is not None and self.volume > 0) else volume
+        effective_vol = self.volume if (hasattr(self, 'volume') and self.volume is not None and self.volume > 0) else volume
         if effective_vol > 0:
             self.concentration = self.moles / effective_vol
         else:
@@ -147,3 +191,17 @@ class Chemical:
     
     def __repr__(self) -> str:
         return f"Chemical({self.name}({self.state}), {self.moles:.3f} mol, {self.color_hex})"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Chemical):
+            return False
+        return self._normalize_name(self.name) == self._normalize_name(other.name)
+
+    def __hash__(self) -> int:
+        return hash(self._normalize_name(self.name))
+
+    @classmethod
+    def from_name(cls, name: str, **kwargs):
+        """Factory to construct a Chemical by name string (parses formula)."""
+        # Allow creating with just a name and kwargs like moles, color_hex, enthalpy
+        return cls(name=name, components=None, **kwargs)

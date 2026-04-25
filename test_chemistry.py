@@ -5,7 +5,7 @@ test_chemistry.py - Comprehensive tests and demonstration of the Dynamic ChemEng
 from chemistry.chemical import Chemical
 from chemistry.reaction import Reaction
 from chemistry.chemical_state import ChemicalState
-from flask import Flask
+from chemistry.flask import Flask
 
 def test_chemical():
     """Test Chemical class and its properties."""
@@ -14,7 +14,7 @@ def test_chemical():
 
     # Using signature inferred from architecture: name, moles, color, enthalpy
     h2o = Chemical("H2O", moles=1.0, color_hex="#87CEEB", enthalpy=-285.8)
-    print(f"Created: {h2o.name} | {h2o.moles} mol | Color: {h2o.color} | dH: {h2o.enthalpy} kJ/mol")
+    print(f"Created: {h2o.name} | {h2o.moles} mol | Color: {h2o.color_hex} | dH: {h2o.enthalpy} kJ/mol")
     
     h2o.moles += 0.5
     print(f"After adding 0.5 mol: {h2o.moles} mol")
@@ -110,7 +110,7 @@ def test_flask():
     print("\n=== Testing Flask ===")
     
     flask = Flask(volume=1.0, max_temperature=373.15)
-    print(f"Initial Flask Temp: {flask.current_temperature if hasattr(flask, 'current_temperature') else 'N/A'} K")
+    print(f"Initial Flask Temp: {flask.chemical_state.get_average_temperature():.1f} K")
     
     h2 = Chemical("H2", moles=2.0, color_hex="#FFFF00", enthalpy=0)
     o2 = Chemical("O2", moles=1.0, color_hex="#87CEEB", enthalpy=0)

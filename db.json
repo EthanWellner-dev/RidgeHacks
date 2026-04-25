@@ -305,6 +305,55 @@
             "state": "gas",
             "color_hex": "#808080",
             "enthalpy": 0.0
+        },
+        "HF": {
+            "components": [
+                [
+                    "H",
+                    1
+                ],
+                [
+                    "F",
+                    1
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#808080",
+            "enthalpy": 0.0
+        },
+        "NaOH": {
+            "components": [
+                [
+                    "Na",
+                    1
+                ],
+                [
+                    "O",
+                    1
+                ],
+                [
+                    "H",
+                    1
+                ]
+            ],
+            "state": "aqueous",
+            "color_hex": "#0000FF",
+            "enthalpy": -470.0
+        },
+        "NaF(aq)": {
+            "components": [
+                [
+                    "Na",
+                    1
+                ],
+                [
+                    "F",
+                    1
+                ]
+            ],
+            "state": "gas",
+            "color_hex": "#808080",
+            "enthalpy": 0.0
         }
     },
     "reactions": {
@@ -409,6 +458,20 @@
             "products": {
                 "H2O(l)": 1,
                 "Na+(aq)": 1
+            },
+            "kc": 100000000000000.0,
+            "rate_constant": 1000000.0,
+            "delta_h": -50.0,
+            "activation_energy": 20.0
+        },
+        "HF + NaOH \u2192 H2O(l) + NaF(aq)": {
+            "reactants": {
+                "HF": 1,
+                "NaOH": 1
+            },
+            "products": {
+                "H2O(l)": 1,
+                "NaF(aq)": 1
             },
             "kc": 100000000000000.0,
             "rate_constant": 1000000.0,
