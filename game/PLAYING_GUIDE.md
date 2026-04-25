@@ -1,4 +1,4 @@
-# Dynamic ChemEngine - Playing Guide
+# Big Alchemy - Playing Guide
 
 ## 🎮 Quick Start
 
@@ -238,7 +238,7 @@ python run.py
 
 ## 🎓 Learning Outcomes
 
-After playing Dynamic ChemEngine, you'll understand:
+After playing Big Alchemy, you'll understand:
 
 ✓ Equilibrium and Le Chatelier's principle
 ✓ How temperature affects reaction rates
@@ -312,7 +312,7 @@ RidgeHacks/
 
 ## 👥 Credits
 
-**Dynamic ChemEngine**
+**Big Alchemy**
 - Interactive chemistry simulator
 - Built with Python & Pygame
 - Simulates equilibrium, kinetics, and thermodynamics

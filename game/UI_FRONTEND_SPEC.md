@@ -3,7 +3,7 @@ UI Frontend Specification
 
 Overview
 --------
-This document describes the intended frontend behavior for the Dynamic ChemEngine UI elements referenced in the mockup/sketch. It is intentionally implementation-agnostic and provides concrete entry points for the renderer (`pygame_renderer.py`) and game loop (`main.py` / `game_mode.py`).
+This document describes the intended frontend behavior for the Big Alchemy UI elements referenced in the mockup/sketch. It is intentionally implementation-agnostic and provides concrete entry points for the renderer (`pygame_renderer.py`) and game loop (`main.py` / `game_mode.py`).
 
 Assets (placeholders)
 - `assets/beaker.png` — beaker graphic (optional)

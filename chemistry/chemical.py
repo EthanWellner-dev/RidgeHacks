@@ -81,11 +81,12 @@ class Chemical:
         """Normalize chemical name for comparisons (fix common typos like 'H20' -> 'H2O')."""
         if not isinstance(name, str):
             return str(name)
+        # Remove parenthetical state descriptors like '(aq)', '(l)'
+        simple = re.sub(r"\(.*?\)", "", name)
         # Replace common zero-for-O typo when it looks like a formula (e.g., H20)
-        if re.match(r'^[A-Za-z0-9()]+$', name) and '0' in name:
-            alt = name.replace('0', 'O')
-            return alt.upper()
-        return name.upper()
+        if re.match(r'^[A-Za-z0-9]+$', simple) and '0' in simple:
+            simple = simple.replace('0', 'O')
+        return simple.upper()
 
     @staticmethod
     def _parse_formula(formula: str) -> list:

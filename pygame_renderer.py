@@ -3,6 +3,8 @@ pygame_renderer.py - Rendering layer for all game visuals.
 Converts backend data into pygame graphics.
 """
 
+import os
+
 import pygame
 from typing import Dict, List, Tuple
 
@@ -40,7 +42,13 @@ class PygameRenderer:
             'small': 12,
             'medium': 16,
             'large': 24,
-            'title': 36
+            'title': 60
+        }
+        self.font_paths = {
+            "small": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoC.ttf"),
+            "medium": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoC.ttf"),
+            "large": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoC.ttf"),
+            "title": os.path.join(os.path.dirname(__file__), "assets", "fonts", "RobotoCBold.ttf")
         }
         
         # --- ADDED LOGIC: State trackers for temperature changes ---
@@ -52,8 +60,8 @@ class PygameRenderer:
     def initialize(self) -> None:
         """Initialize pygame display."""
         pygame.init()
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Dynamic ChemEngine")
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        pygame.display.set_caption("Big Alchemy")
         self._load_fonts()
         # Load optional assets
         self.assets = {}
@@ -93,11 +101,16 @@ class PygameRenderer:
         except Exception:
             self.assets['magnifier'] = None
     
+    def updateSize(self, w, h) -> None:
+        self.width = max(400, w)
+        self.height = max(300, h)
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+
     def _load_fonts(self) -> None:
         """Load all fonts."""
         for name, size in self.font_sizes.items():
-            self.fonts[name] = pygame.font.Font(None, size)
-    
+            self.fonts[name] = pygame.font.Font(self.font_paths[name], size)
+
     def _hex_to_rgb(self, hex_color: str) -> Tuple[int, int, int]:
         """
         Convert hex color to RGB tuple.
@@ -800,7 +813,7 @@ class PygameRenderer:
         """Render main menu."""
         self.clear()
         
-        title = self.fonts['title'].render("Dynamic ChemEngine", True, (0, 0, 0))
+        title = self.fonts['title'].render("Big Alchemy", True, (0, 0, 0))
         title_rect = title.get_rect(center=(self.width // 2, 100))
         self.screen.blit(title, title_rect)
         
@@ -840,6 +853,7 @@ class PygameRenderer:
     
     def flip(self) -> None:
         """Update display."""
+
         pygame.display.flip()
     
     def quit(self) -> None:
