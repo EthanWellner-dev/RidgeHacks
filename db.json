@@ -1,0 +1,27 @@
+{
+    "atoms": {
+        "H": "",
+        "O": "",
+        "C": "",
+        "N": "",
+        "S": "",
+        "P": "",
+        "Cl": false,
+        "Na": false,
+        "K": false,
+        "Ca": false,
+        "Fe": false,
+        "Mg": false,
+        "Zn": false,
+        "Cu": false,
+        "Mn": false,
+        "Co": false,
+        "Ni": false,
+        "F": false,
+        "Br": false,
+        "I": false
+    },
+    "molecules": {
+
+    }
+}

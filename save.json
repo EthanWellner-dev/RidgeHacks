@@ -1,0 +1,35 @@
+{
+    "objectiveProgress": {
+        "obj1": 0,
+        "obj2": 0,
+        "obj3": 0
+    },
+    "chemicals": {
+        "atoms": {
+            "H": false,
+            "O": false,
+            "C": false,
+            "N": false,
+            "S": false,
+            "P": false,
+            "Cl": false,
+            "Na": false,
+            "K": false,
+            "Ca": false,
+            "Fe": false,
+            "Mg": false,
+            "Zn": false,
+            "Cu": false,
+            "Mn": false,
+            "Co": false,
+            "Ni": false,
+            "F": false,
+            "Br": false,
+            "I": false
+        },
+        "molecules": {
+
+        }
+    }
+
+}
