@@ -13,13 +13,13 @@ class Reaction:
     """
     
     def __init__(self, 
-                 name: str,
-                 reactants: dict,
-                 products: dict,
-                 kc: float,
-                 rate_constant: float,
-                 delta_h: float,
-                 activation_energy: float = 50.0):
+        name: str,
+        reactants: dict,
+        products: dict,
+        kc: float,
+        rate_constant: float,
+        delta_h: float,
+        activation_energy: float = 50.0):
         """
         Initialize a reaction.
         
