@@ -6,10 +6,10 @@
     },
     "chemicals": {
         "atoms": {
-            "H": false,
-            "O": false,
-            "C": false,
-            "N": false,
+            "H": true,
+            "O": true,
+            "C": true,
+            "N": true,
             "S": false,
             "P": false,
             "Cl": false,
