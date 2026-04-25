@@ -68,9 +68,14 @@ class GameApplication:
         """Setup sandbox mode with free chemistry experimentation."""
         print("\n=== Starting Sandbox Mode ===")
         
-        # Create flask
+        # Create flask (centered)
         flask = Flask(1.0, max_temperature=373.15)
-        flask.bounds = {'x': 50, 'y': 100, 'width': 300, 'height': 500}
+        flask.bounds = {
+            'x': int(self.width // 2 - 200),
+            'y': 100,
+            'width': 400,
+            'height': 500
+        }
         
         # Create some common chemicals
         water = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)      # Light blue
@@ -79,11 +84,15 @@ class GameApplication:
         gas = Chemical("O2", [("O", 2)], 0.0, "#87CEEB", 0)              # Light blue
         
         # Create droppers
+        # Place droppers in a left-side column
+        left_x = 40
+        start_y = 140
+        spacing_y = 110
         droppers = [
-            Dropper(400, 150, water, 0.2, width=60, height=80, label="Water"),
-            Dropper(480, 150, acid, 0.1, width=60, height=80, label="Acid"),
-            Dropper(560, 150, base, 0.1, width=60, height=80, label="Base"),
-            Dropper(640, 150, gas, 0.05, width=60, height=80, label="O₂"),
+            Dropper(left_x, start_y + 0 * spacing_y, water, 0.2, width=80, height=90, label="Water"),
+            Dropper(left_x, start_y + 1 * spacing_y, acid, 0.1, width=80, height=90, label="Acid"),
+            Dropper(left_x, start_y + 2 * spacing_y, base, 0.1, width=80, height=90, label="Base"),
+            Dropper(left_x, start_y + 3 * spacing_y, gas, 0.05, width=80, height=90, label="O₂"),
         ]
         
         # Create thermometer
@@ -131,6 +140,15 @@ class GameApplication:
         # Setup game mode
         self.game_mode = GameMode()
         self.game_mode.initialize_challenge(challenge, thermometer, hotplate)
+
+        # Center the flask for the challenge view
+        if self.game_mode and self.game_mode.flask:
+            self.game_mode.flask.bounds = {
+                'x': int(self.width // 2 - 200),
+                'y': 100,
+                'width': 400,
+                'height': 500
+            }
         
         print("Challenge started! Use hotplate to control temperature.")
         print("SPACE to pause, ESC to return to menu")
@@ -151,8 +169,16 @@ class GameApplication:
                     self.handle_pause_input(event.key)
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
+                # Left-click handling for menu and game
+                if self.state == AppState.MENU:
+                    self.handle_menu_mouse_click(event.pos)
+                elif self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
                     self.handle_mouse_click(event.pos)
+
+            elif event.type == pygame.MOUSEWHEEL:
+                # Mouse wheel scrolling (vertical) - forward to game mode for challenge objectives
+                if self.state in [AppState.SANDBOX, AppState.CHALLENGE] and self.game_mode:
+                    self.game_mode.handle_input({'type': 'mouse_wheel', 'y': event.y})
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
@@ -218,6 +244,41 @@ class GameApplication:
             'x': pos[0],
             'y': pos[1]
         })
+
+    def handle_menu_mouse_click(self, pos: tuple) -> None:
+        """Handle mouse clicks on the main menu options."""
+        mx, my = pos
+        # Menu layout matches renderer.render_main_menu
+        center_x = self.width // 2
+        y_pos = 300
+        spacing = 80
+        options = self.menu_options
+
+        for i, option in enumerate(options):
+            # Use renderer font metrics to build bounding rect
+            font = self.renderer.fonts.get('large')
+            if not font:
+                # Fonts may not be loaded yet
+                font = pygame.font.Font(None, 24)
+
+            option_surface = font.render(option, True, (0, 0, 0))
+            option_rect = option_surface.get_rect(center=(center_x, y_pos))
+
+            if option_rect.collidepoint(mx, my):
+                # Trigger same actions as keyboard ENTER
+                if i == 0:
+                    self.setup_sandbox_mode()
+                    self.state = AppState.SANDBOX
+                elif i == 1:
+                    self.setup_challenge_mode(0)
+                    self.state = AppState.CHALLENGE
+                elif i == 2:
+                    self.running = False
+                    self.state = AppState.QUIT
+
+                return
+
+            y_pos += spacing
     
     def update(self, delta_time: float) -> None:
         """Update game state."""
