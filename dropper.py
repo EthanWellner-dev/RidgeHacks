@@ -128,3 +128,46 @@ class Dropper:
     
     def __repr__(self) -> str:
         return f"Dropper({self.label}, {self.moles_per_drop:.3f} mol/drop)"
+
+
+class TitrationDropper(Dropper):
+    """
+    A Dropper variant for titration-style interactions. Holding the mouse delivers
+    a small continuous amount (mol/sec) instead of a single discrete drop.
+    This class is intentionally minimal — the game loop or UI layer should
+    call `get_hold_dispense(dt)` each frame while the dropper is being held
+    and apply the returned moles to the flask.
+    """
+
+    def __init__(self, x: float, y: float, chemical, moles_per_drop: float,
+                 sip_rate: float = 0.005, width: float = 50, height: float = 80,
+                 label: str = None):
+        super().__init__(x, y, chemical, moles_per_drop, width, height, label)
+        # sip_rate: mol per second while holding
+        self.sip_rate = max(1e-6, float(sip_rate))
+        self.holding = False
+
+    def on_mouse_down(self, mouse_x: float, mouse_y: float) -> bool:
+        if self.is_clicked(mouse_x, mouse_y):
+            self.holding = True
+            # also keep normal click behavior for immediate drop
+            self.click_cooldown = self.click_delay
+            return True
+        return False
+
+    def on_mouse_up(self) -> None:
+        self.holding = False
+        super().on_mouse_up()
+
+    def update(self, delta_time: float) -> None:
+        super().update(delta_time)
+
+    def get_hold_dispense(self, delta_time: float) -> dict | None:
+        """
+        If the dropper is being held, return a small dispense dict for the
+        current frame. Returns None when not dispensing.
+        """
+        if self.holding:
+            moles = self.sip_rate * float(delta_time)
+            return {'chemical': self.chemical, 'moles': moles}
+        return None

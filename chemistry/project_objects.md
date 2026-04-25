@@ -17,6 +17,8 @@ Represents a single chemical substance in the system. Stores the name, current m
 
 ---
 
+**Implementation Note:** `chemical.py` (DO NOT BUILD) will expose a method to return human-friendly information about a chemical (for example `get_info()` or `get_component_details()`). This method will be used by UI elements and documentation to display the chemical's name, current concentration, color (hex), enthalpy, and other relevant properties.
+
 ### `Reaction`
 Represents a single reversible chemical reaction with reactants and products. Stores the equilibrium constant (Kc), rate constant for Arrhenius equation, and enthalpy change (ΔH). Provides methods to calculate the reaction quotient Q, determine equilibrium shift direction, and compute reaction rate based on temperature and catalysts.
 

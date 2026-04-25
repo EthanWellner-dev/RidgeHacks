@@ -156,6 +156,14 @@ Main container showing:
 - Cooldown bar prevents spam-clicking
 - Each drop adds fixed amount
 
+### Magnifier & Titration Tools
+
+- **Magnifying Glasses (right side):** Small magnifier UI buttons sit on the right toolbar. When the player hovers a magnifier over a beaker or volumetric flask graphic, the renderer should show a live particle preview (a read-only snapshot of particle motion and intensity) for that vessel. These magnifiers are available in both Sandbox and Challenge modes.
+- **Hover behavior:** Hovering the magnifier over a vessel shows the particle emitter in motion in a zoomed preview. The preview must not modify the chemistry state — it is a visualization only.
+- **Scroll support:** The chemical/tool panels (left and right columns) allow vertical scrolling when content overflows; both panels scroll independently so the user can reach many droppers or magnifiers.
+- **Titration Dropper:** A `TitrationDropper` UI variant enables fine, continuous micro-dosing for titration activities. Holding the mouse button (or dragging) delivers small, continuous amounts (mol/sec) for precise control. The UI shows a small dosing indicator while dispensing.
+- **Tools indicator:** The right tools column contains small indicators for active tools (for example, `pH strip`, `Rxn measurer`, `Titration indicator`). Indicators show on/off or numeric value states and display a tooltip on hover.
+
 ---
 
 ## 💡 Tips & Strategies
