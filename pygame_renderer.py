@@ -50,6 +50,17 @@ class PygameRenderer:
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Dynamic ChemEngine")
         self._load_fonts()
+        # Load optional assets
+        self.assets = {}
+        try:
+            self.assets['empty_flask'] = pygame.image.load('assets/empty_flask.png').convert_alpha()
+        except Exception:
+            self.assets['empty_flask'] = None
+
+        try:
+            self.assets['full_flask'] = pygame.image.load('assets/flask960.png').convert_alpha()
+        except Exception:
+            self.assets['full_flask'] = None
     
     def _load_fonts(self) -> None:
         """Load all fonts."""
@@ -75,6 +86,11 @@ class PygameRenderer:
     def _clamp_color(self, rgb: Tuple[int, int, int]) -> Tuple[int, int, int]:
         """Clamp RGB values to 0-255 range."""
         return tuple(max(0, min(255, c)) for c in rgb)
+
+    def _to_subscript(self, text: str) -> str:
+        """Convert ASCII digits in text to Unicode subscript digits for nicer chemical labels."""
+        subs = str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉')
+        return text.translate(subs)
     
     def clear(self) -> None:
         """Clear screen with background color."""
@@ -93,11 +109,28 @@ class PygameRenderer:
         width = bounds['width']
         height = bounds['height']
         
-        # Flask background (main color)
+        # Draw liquid area first (if an empty flask image is available, blit it and then draw liquid inside)
+        liquid_inset = 8
+        inner_x = x + liquid_inset
+        inner_y = y + liquid_inset
+        inner_w = max(0, width - liquid_inset * 2)
+        inner_h = max(0, height - liquid_inset * 2)
+
         color_rgb = self._hex_to_rgb(flask_data['color_hex'])
         color_rgb = self._clamp_color(color_rgb)
-        pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
-        
+
+        if self.assets.get('empty_flask'):
+            try:
+                img = pygame.transform.smoothscale(self.assets['empty_flask'], (width, height))
+                self.screen.blit(img, (x, y))
+                # draw liquid inside as colored rect slightly inset
+                pygame.draw.rect(self.screen, color_rgb, (inner_x, inner_y + inner_h * 0.15, inner_w, inner_h * 0.8))
+            except Exception:
+                pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
+        else:
+            # Fallback: simple colored rectangle
+            pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
+
         # Flask border
         border_color = (0, 0, 0) if not flask_data['is_boiling'] else (255, 0, 0)
         border_width = 4 if flask_data['is_boiling'] else 3
@@ -106,6 +139,22 @@ class PygameRenderer:
         # Boiling effect (animated shimmer)
         if flask_data['is_boiling']:
             self._render_boiling_effect(x, y, width, height)
+
+        # Draw chemical label summary above flask
+        chems = flask_data.get('chemicals', [])
+        if chems:
+            label_x = x + width // 2
+            label_y = y - 28
+            # Compose a short label: name (moles) for up to 3 chemicals
+            lines = []
+            for c in chems[:3]:
+                name = self._to_subscript(c.get('name', ''))
+                lines.append(f"{name}: {c.get('moles', 0):.2f} mol")
+
+            for i, line in enumerate(lines):
+                surf = self.fonts['small'].render(line, True, (0, 0, 0))
+                rect = surf.get_rect(center=(label_x, label_y + i * 14))
+                self.screen.blit(surf, rect)
     
     def _render_boiling_effect(self, x: float, y: float, width: float, height: float) -> None:
         """Render boiling water visual effect."""
@@ -159,7 +208,7 @@ class PygameRenderer:
                         int(dropper_data['border_width']))
         
         # Draw label
-        label = dropper_data['label']
+        label = self._to_subscript(dropper_data['label'])
         label_surface = self.fonts['medium'].render(label, True, border_color)
         label_rect = label_surface.get_rect(center=(x + width // 2, y + height // 2))
         self.screen.blit(label_surface, label_rect)
@@ -261,6 +310,18 @@ class PygameRenderer:
                 self.render_thermometer(data)
             elif element_type == 'hotplate':
                 self.render_hotplate(data)
+            elif element_type == 'drag_preview':
+                # Simple floating dropper preview
+                pd = data
+                preview_rect = (int(pd['x']), int(pd['y']), int(pd['width']), int(pd['height']))
+                color = self._hex_to_rgb(pd.get('color', '#808080'))
+                border = self._hex_to_rgb(pd.get('border_color', '#000000'))
+                pygame.draw.rect(self.screen, color, preview_rect)
+                pygame.draw.rect(self.screen, border, preview_rect, 3)
+                label = self._to_subscript(pd.get('label', ''))
+                label_s = self.fonts['small'].render(label, True, border)
+                label_r = label_s.get_rect(center=(pd['x'] + pd['width'] // 2, pd['y'] + pd['height'] // 2))
+                self.screen.blit(label_s, label_r)
     
     def render_challenge_info(self, challenge_data: Dict) -> None:
         """

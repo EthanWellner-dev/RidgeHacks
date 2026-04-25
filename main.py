@@ -152,6 +152,25 @@ class GameApplication:
         
         print("Challenge started! Use hotplate to control temperature.")
         print("SPACE to pause, ESC to return to menu")
+        # Provide a minimal set of droppers for challenge (e.g., acid) so player can interact
+        acid = Chemical("H+", [("H", 1)], 0.0, "#FF0000", 0)
+        water = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)
+        base = Chemical("NaOH", [("Na", 1), ("O", 1), ("H", 1)], 0.0, "#0000FF", -427)
+
+        left_x = 40
+        start_y = 140
+        spacing_y = 110
+        challenge_droppers = [
+            Dropper(left_x, start_y + 0 * spacing_y, water, 0.2, width=80, height=90, label="Water"),
+            Dropper(left_x, start_y + 1 * spacing_y, acid, 0.1, width=80, height=90, label="Acid"),
+            Dropper(left_x, start_y + 2 * spacing_y, base, 0.1, width=80, height=90, label="Base"),
+        ]
+
+        # Attach droppers to the game mode so user can add reagents in challenge
+        self.game_mode.droppers = challenge_droppers
+        # Ensure UI elements include droppers
+        for d in challenge_droppers:
+            self.game_mode.ui_elements.insert(0, d)
     
     def handle_events(self) -> None:
         """Handle pygame events."""
@@ -173,7 +192,13 @@ class GameApplication:
                 if self.state == AppState.MENU:
                     self.handle_menu_mouse_click(event.pos)
                 elif self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
-                    self.handle_mouse_click(event.pos)
+                    # notify game mode of mouse down
+                    self.game_mode.handle_input({'type': 'mouse_down', 'x': event.pos[0], 'y': event.pos[1], 'button': event.button})
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                # Mouse button released
+                if self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
+                    self.game_mode.handle_input({'type': 'mouse_up', 'x': event.pos[0], 'y': event.pos[1], 'button': event.button})
 
             elif event.type == pygame.MOUSEWHEEL:
                 # Mouse wheel scrolling (vertical) - forward to game mode for challenge objectives

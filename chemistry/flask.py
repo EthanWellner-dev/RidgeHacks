@@ -137,8 +137,13 @@ class Flask:
             'particle_count': particle_count,
             'is_boiling': self.is_boiling,
             'volume': self.volume,
-            'bounds': self.bounds.copy()
+            'bounds': self.bounds.copy(),
+            'chemicals': [
+                {'name': chemical.name, 'moles': moles, 'color_hex': getattr(chemical, 'color_hex', '#FFFFFF')}
+                for chemical, moles in self.chemical_state.chemicals.items()
+            ]
         }
+    
     
     def get_chemical_by_name(self, name: str) -> Chemical:
         """Find a chemical by name."""

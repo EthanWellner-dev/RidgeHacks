@@ -32,6 +32,9 @@ class GameMode:
         self.droppers = []
         self.thermometer = None
         self.hotplate = None
+        # Drag state for droppers
+        self.dragging_dropper = None
+        self.drag_pos = (0, 0)
         
         # Game state
         self.is_paused = False
@@ -115,6 +118,10 @@ class GameMode:
             self.on_mouse_click(event.get('x', 0), event.get('y', 0))
         elif event_type == 'mouse_move':
             self.on_mouse_move(event.get('x', 0), event.get('y', 0))
+        elif event_type == 'mouse_down':
+            self.on_mouse_down(event.get('x', 0), event.get('y', 0), event.get('button', 1))
+        elif event_type == 'mouse_up':
+            self.on_mouse_up(event.get('x', 0), event.get('y', 0), event.get('button', 1))
         elif event_type == 'mouse_wheel':
             # Adjust scroll for challenge objectives
             if self.mode_type == 'challenge':
@@ -140,11 +147,56 @@ class GameMode:
     
     def on_mouse_move(self, mouse_x: float, mouse_y: float) -> None:
         """Handle mouse move."""
-        for dropper in self.droppers:
-            dropper.on_mouse_move(mouse_x, mouse_y)
-        
+        # Update hover states for droppers when not dragging
+        if not self.dragging_dropper:
+            for dropper in self.droppers:
+                dropper.on_mouse_move(mouse_x, mouse_y)
+
+        # Update drag position if dragging
+        if self.dragging_dropper:
+            self.drag_pos = (mouse_x, mouse_y)
+
         if self.hotplate:
             self.hotplate.on_mouse_move(mouse_x, mouse_y)
+
+    def on_mouse_down(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
+        """Start drag/press behavior for droppers."""
+        # Start dragging if a dropper is pressed
+        for dropper in self.droppers:
+            if dropper.on_mouse_down(mouse_x, mouse_y):
+                self.dragging_dropper = dropper
+                self.drag_pos = (mouse_x, mouse_y)
+                return
+
+        # Hotplate press
+        if self.hotplate:
+            if self.hotplate.on_click(mouse_x, mouse_y):
+                return
+
+    def on_mouse_up(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
+        """Handle mouse release; drop a dragged chemical into flask if over it."""
+        if self.dragging_dropper:
+            # check if released over flask bounds
+            if self.flask:
+                bounds = self.flask.get_visual_data().get('bounds', {})
+                bx = bounds.get('x', 0)
+                by = bounds.get('y', 0)
+                bw = bounds.get('width', 0)
+                bh = bounds.get('height', 0)
+                if bx <= mouse_x <= bx + bw and by <= mouse_y <= by + bh:
+                    # Dispense into flask
+                    dispense_data = self.dragging_dropper.dispense()
+                    self.flask.add_reactant(dispense_data['chemical'], dispense_data['moles'])
+
+            # end drag
+            self.dragging_dropper.on_mouse_up()
+            self.dragging_dropper = None
+            return
+
+        # Hotplate release
+        if self.hotplate:
+            if hasattr(self.hotplate, 'on_mouse_up'):
+                self.hotplate.on_mouse_up()
     
     def on_key_press(self, key_name: str) -> None:
         """Handle keyboard input."""
@@ -173,6 +225,11 @@ class GameMode:
         # Update UI elements
         for dropper in self.droppers:
             dropper.update(delta_time)
+            # Support hold-dispense (titration droppers)
+            if hasattr(dropper, 'get_hold_dispense'):
+                hold = dropper.get_hold_dispense(delta_time)
+                if hold:
+                    self.flask.add_reactant(hold['chemical'], hold['moles'])
         
         # Update flask
         flask_update = self.flask.update(delta_time)
@@ -242,6 +299,20 @@ class GameMode:
                 'type': 'hotplate',
                 'data': self.hotplate.get_render_data()
             })
+
+        # Drag preview (if dragging a dropper)
+        if self.dragging_dropper:
+            dx, dy = self.drag_pos
+            preview = {
+                'x': dx - self.dragging_dropper.width // 2,
+                'y': dy - self.dragging_dropper.height // 2,
+                'width': self.dragging_dropper.width,
+                'height': self.dragging_dropper.height,
+                'label': self.dragging_dropper.label,
+                'color': self.dragging_dropper.chemical.color_hex if self.dragging_dropper.chemical else '#808080',
+                'border_color': self.dragging_dropper.chemical.color_hex if self.dragging_dropper.chemical else '#FFFFFF'
+            }
+            data['ui_elements'].append({'type': 'drag_preview', 'data': preview})
         
         # Challenge-specific data
         if self.mode_type == "challenge" and self.challenge:
