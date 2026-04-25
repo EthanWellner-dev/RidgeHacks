@@ -7,6 +7,7 @@ import os
 
 import pygame
 from typing import Dict, List, Tuple
+from game.image_utils import recolor_image_to_surface
 
 
 class PygameRenderer:
@@ -74,6 +75,8 @@ class PygameRenderer:
             self.assets['full_flask'] = pygame.image.load('assets/flask960.png').convert_alpha()
         except Exception:
             self.assets['full_flask'] = None
+        # Cache recolored flask images by color hex -> pygame.Surface (original image size)
+        self._flask_image_cache = {}
         # Thermometer variants
         self.assets['thermometerCold'] = None
         self.assets['thermometer'] = None
@@ -100,6 +103,11 @@ class PygameRenderer:
             self.assets['magnifier'] = pygame.image.load('assets/magnifier.png').convert_alpha()
         except Exception:
             self.assets['magnifier'] = None
+        # Temperature changer icon (sidebar)
+        try:
+            self.assets['temp_changer'] = pygame.image.load('assets/tempChanger.png').convert_alpha()
+        except Exception:
+            self.assets['temp_changer'] = None
     
     def updateSize(self, w, h) -> None:
         self.width = max(400, w)
@@ -188,9 +196,21 @@ class PygameRenderer:
         except Exception:
             pygame.draw.rect(self.screen, color_rgb, (x, y, width, height))
 
-        if self.assets.get('empty_flask'):
+        # Use recolored flask image when available to represent the mixture color
+        flask_img_path = os.path.join(os.path.dirname(__file__), 'assets', 'flask960.png')
+        if self.assets.get('full_flask') is not None:
             try:
-                img = pygame.transform.smoothscale(self.assets['empty_flask'], (width, height))
+                color_key = flask_data.get('color_hex', '#FFFFFF').upper()
+                if color_key not in self._flask_image_cache:
+                    try:
+                        surf = recolor_image_to_surface(flask_img_path, color_key, source_hex='#00A8F3', tolerance=8)
+                        self._flask_image_cache[color_key] = surf
+                    except Exception:
+                        # Fallback to using the base image
+                        self._flask_image_cache[color_key] = self.assets['full_flask']
+
+                img = self._flask_image_cache.get(color_key, self.assets['full_flask'])
+                img = pygame.transform.smoothscale(img, (width, height))
                 self.screen.blit(img, (x, y))
             except Exception:
                 border_color = (0, 0, 0) if not flask_data['is_boiling'] else (255, 0, 0)
@@ -256,7 +276,19 @@ class PygameRenderer:
         
         if self.assets.get('full_flask'):
             try:
-                img = pygame.transform.smoothscale(self.assets['full_flask'], (width, height))
+                # Use recolored version based on chemical border color if available
+                color_key = dropper_data.get('border_color', '#FFFFFF').upper()
+                if color_key in self._flask_image_cache:
+                    img = self._flask_image_cache[color_key]
+                else:
+                    # Try recoloring on demand (small icon size will be scaled)
+                    try:
+                        img = recolor_image_to_surface(os.path.join(os.path.dirname(__file__), 'assets', 'flask960.png'), color_key, source_hex='#00A8F3', tolerance=8)
+                        self._flask_image_cache[color_key] = img
+                    except Exception:
+                        img = self.assets['full_flask']
+
+                img = pygame.transform.smoothscale(img, (width, height))
                 self.screen.blit(img, (x, y))
             except Exception:
                 pygame.draw.rect(self.screen, color, (x, y, width, height))
@@ -436,10 +468,8 @@ class PygameRenderer:
             if element_type == 'dropper':
                 self.render_dropper(data)
             elif element_type == 'thermometer':
-                if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
-                    self._render_icon(data, "Thermometer", self.assets.get('thermometer'))
-                else:
-                    self.render_thermometer(data)
+                # Always render the dynamic thermometer, even when stowed in the right sidebar
+                self.render_thermometer(data)
             elif element_type == 'hotplate':
                 if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
                     self._render_icon(data, "Hotplate")
@@ -447,7 +477,7 @@ class PygameRenderer:
                     self.render_hotplate(data)
             elif element_type == 'temp_changer':
                 if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
-                    self._render_icon(data, "Temp")
+                    self._render_icon(data, "Temp", self.assets.get('temp_changer'))
                 else:
                     self.render_temp_changer(data)
             elif element_type == 'stopwatch':
@@ -469,6 +499,25 @@ class PygameRenderer:
                 if pd.get('icon_type') == 'thermometer' and self.assets.get('thermometer'):
                     img = pygame.transform.smoothscale(self.assets['thermometer'], (int(pd['width']), int(pd['height'])))
                     self.screen.blit(img, (int(pd['x']), int(pd['y'])))
+                elif pd.get('icon_type') == 'flask' and self.assets.get('full_flask'):
+                    # Use recolored flask icon if available
+                    color_key = pd.get('border_color', '#FFFFFF').upper()
+                    icon = None
+                    if color_key in self._flask_image_cache:
+                        icon = self._flask_image_cache[color_key]
+                    else:
+                        try:
+                            icon = recolor_image_to_surface(os.path.join(os.path.dirname(__file__), 'assets', 'flask960.png'), color_key, source_hex='#00A8F3', tolerance=8)
+                            self._flask_image_cache[color_key] = icon
+                        except Exception:
+                            icon = self.assets.get('full_flask')
+
+                    try:
+                        img = pygame.transform.smoothscale(icon, (int(pd['width']), int(pd['height'])))
+                        self.screen.blit(img, (int(pd['x']), int(pd['y'])))
+                    except Exception:
+                        pygame.draw.rect(self.screen, color, preview_rect)
+                        pygame.draw.rect(self.screen, border, preview_rect, 3)
                 else:
                     pygame.draw.rect(self.screen, color, preview_rect)
                     pygame.draw.rect(self.screen, border, preview_rect, 3)
@@ -476,6 +525,17 @@ class PygameRenderer:
                     label_s = self.fonts['small'].render(label, True, border)
                     label_r = label_s.get_rect(center=(pd['x'] + pd['width'] // 2, pd['y'] + pd['height'] // 2))
                     self.screen.blit(label_s, label_r)
+            elif element_type == 'react_button':
+                bd = data
+                bx = int(bd['x'])
+                by = int(bd['y'])
+                bw = int(bd['width'])
+                bh = int(bd['height'])
+                pygame.draw.rect(self.screen, (200, 60, 60), (bx, by, bw, bh))
+                pygame.draw.rect(self.screen, (0, 0, 0), (bx, by, bw, bh), 2)
+                lab = self.fonts['small'].render('React', True, (255, 255, 255))
+                lr = lab.get_rect(center=(bx + bw // 2, by + bh // 2))
+                self.screen.blit(lab, lr)
             elif element_type == 'ph_strip':
                 pd = data
                 x = int(pd['x'])

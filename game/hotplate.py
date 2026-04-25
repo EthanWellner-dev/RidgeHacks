@@ -34,6 +34,8 @@ class HotPlate:
         
         # State
         self.is_on = False
+        # Mode: 'off', 'heat', 'cool'
+        self.mode = 'off'
         self.heat_level = 0.5  # 0.0 to 1.0 (fraction of max output)
         self.is_hovered = False
         
@@ -69,9 +71,17 @@ class HotPlate:
             # If an external controller drives the hotplate, clicking the main
             # body toggles controller enable/disable instead of raw on/off.
             if self.controller is not None:
-                # Toggle controller active flag if present
-                self.controller.active = not getattr(self.controller, 'active', True)
+                # Cycle mode: off -> heat -> cool -> off
+                if getattr(self, 'mode', 'off') == 'off':
+                    self.mode = 'heat'
+                elif self.mode == 'heat':
+                    self.mode = 'cool'
+                else:
+                    self.mode = 'off'
+                # Reflect is_on for compatibility
+                self.is_on = (self.mode != 'off')
             else:
+                # No controller: simple toggle on/off
                 self.is_on = not self.is_on
             return True
         return False
@@ -108,17 +118,14 @@ class HotPlate:
         """
         # If an external controller is present, ask it to compute required output.
         # The controller expects (max_heat_output, current_temp_k) and returns K/s.
+        # New behavior: support explicit heat/cool modes (fixed rates per request)
         if self.controller is not None:
-            # Controller will return desired heat in K/s (clamped already)
-            # The caller (GameMode) should pass current temperature to this method
-            # via an updated signature; for backward compatibility, we keep this
-            # method simple and return based on controller.target if available.
-            if hasattr(self.controller, 'get_target_kelvin'):
-                # Without the current temperature we can't compute exact power; return
-                # a conservative estimate based on current heat_level flag.
-                if getattr(self, 'is_on', False):
-                    return self.max_heat_output * self.heat_level
-                return 0.0
+            # If controller is present, use hotplate.mode to decide heating/cooling.
+            if getattr(self, 'mode', 'off') == 'heat':
+                return 5.0 * self.heat_level
+            elif getattr(self, 'mode', 'off') == 'cool':
+                return -5.0 * self.heat_level
+            return 0.0
         else:
             if self.is_on:
                 return self.max_heat_output * self.heat_level
@@ -131,15 +138,13 @@ class HotPlate:
         Returns:
             dict with hotplate visual properties
         """
-        # Color based on state
-        if not self.is_on:
-            color = "#808080"  # Gray when off
-        elif self.heat_level < 0.33:
-            color = "#FFA500"  # Orange for low heat
-        elif self.heat_level < 0.67:
-            color = "#FF8000"  # Darker orange for medium heat
+        # Color based on mode/state
+        if getattr(self, 'mode', 'off') == 'heat':
+            color = "#FF6666"
+        elif getattr(self, 'mode', 'off') == 'cool':
+            color = "#66A7FF"
         else:
-            color = "#FF0000"  # Red for high heat
+            color = "#808080"
         
         hover_color = "#FFAA00" if not self.is_on else color
         if self.is_hovered:

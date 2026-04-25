@@ -54,8 +54,8 @@ class TemperatureChanger:
         desired = kp * error
         # Clamp to physical heater capability
         desired = max(-max_heat_output, min(max_heat_output, desired))
-        # Only positive heat output (hotplate can't actively cool)
-        return max(0.0, desired)
+        # Allow negative output (cooling) if desired by controller logic
+        return desired
 
     # Simple rectangular button regions inside the element for +/- controls
     def _button_areas(self):

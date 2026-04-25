@@ -170,6 +170,16 @@ class GameMode:
     
     def on_mouse_click(self, mouse_x: float, mouse_y: float) -> None:
         """Handle mouse click."""
+        # React button handling (take priority)
+        if getattr(self, 'react_button', None):
+            rb = self.react_button
+            if rb['x'] <= mouse_x <= rb['x'] + rb['width'] and rb['y'] <= mouse_y <= rb['y'] + rb['height']:
+                # Run reaction; user-triggered so run synchronously
+                try:
+                    self.flask.react()
+                except Exception:
+                    pass
+                return
         # Check dropper clicks
         for dropper in self.droppers:
             # If dropper is placed in a sidebar, clicking should pick it up (drag),
@@ -342,12 +352,14 @@ class GameMode:
             # If hotplate has an external controller (TemperatureChanger), ask it
             # to compute the desired heat output based on current flask temp.
             heat_output = 0.0
-            if getattr(self.hotplate, 'controller', None) is not None:
-                cur_temp = None
-                if self.flask and hasattr(self.flask, 'chemical_state') and hasattr(self.flask.chemical_state, 'temperature'):
-                    cur_temp = self.flask.chemical_state.temperature
-                heat_output = self.hotplate.controller.get_heat_output(self.hotplate.max_heat_output, cur_temp)
-            else:
+            cur_temp = None
+            if self.flask and hasattr(self.flask, 'chemical_state') and hasattr(self.flask.chemical_state, 'temperature'):
+                cur_temp = self.flask.chemical_state.get_average_temperature()
+            # Delegate to HotPlate which now supports modes (heat/cool/off)
+            try:
+                heat_output = self.hotplate.get_heat_output()
+            except TypeError:
+                # older signature: accept current temp
                 heat_output = self.hotplate.get_heat_output()
 
             self.flask.adjust_temperature(heat_output * delta_time)
@@ -463,9 +475,24 @@ class GameMode:
                 'height': self.dragging_dropper.height,
                 'label': self.dragging_dropper.label,
                 'color': self.dragging_dropper.chemical.color_hex if self.dragging_dropper.chemical else '#808080',
-                'border_color': self.dragging_dropper.chemical.color_hex if self.dragging_dropper.chemical else '#FFFFFF'
+                'border_color': self.dragging_dropper.chemical.color_hex if self.dragging_dropper.chemical else '#FFFFFF',
+                'icon_type': 'flask'
             }
             data['ui_elements'].append({'type': 'drag_preview', 'data': preview})
+
+        # Add a React button near the flask (bottom-right of flask bounds)
+        if self.flask:
+            fb = self.flask.get_visual_data().get('bounds', {})
+            bx = int(fb.get('x', 0))
+            by = int(fb.get('y', 0))
+            bw = int(fb.get('width', 0))
+            bh = int(fb.get('height', 0))
+            btn_w = 110
+            btn_h = 36
+            btn_x = bx + bw + 16
+            btn_y = by + bh - btn_h
+            self.react_button = {'x': btn_x, 'y': btn_y, 'width': btn_w, 'height': btn_h}
+            data['ui_elements'].append({'type': 'react_button', 'data': self.react_button})
         
         # Challenge-specific data
         if self.mode_type == "challenge" and self.challenge:

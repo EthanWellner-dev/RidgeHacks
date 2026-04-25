@@ -200,7 +200,9 @@ class GameApplication:
                     # If it's in the right sidebar, swallow the click so we can drag it 
                     # without the backend blocking it or accidentally pressing internal buttons
                     if x >= self.width - 320:
-                        return True
+                        # Do not swallow the click; allow backend to receive it so
+                        # sidebar controls (hotplate/thermometer/stopwatch) respond.
+                        return False
                     # If it's already dragged out, don't return true (let the backend get the click 
                     # for the Hotplate On/Off toggle) but keep it as the active dragging_tool.
                     return False
@@ -247,6 +249,12 @@ class GameApplication:
                 if self.state in[AppState.SANDBOX, AppState.CHALLENGE]:
                     self.dragging_tool = None
                     self.game_mode.handle_input({'type': 'mouse_up', 'x': event.pos[0], 'y': event.pos[1], 'button': event.button})
+                    # Also send a high-level click event so UI elements that expect
+                    # a simple click (not down/up) can respond (React button, Stopwatch, Hotplate)
+                    try:
+                        self.game_mode.handle_input({'type': 'mouse_click', 'x': event.pos[0], 'y': event.pos[1]})
+                    except Exception:
+                        pass
 
             elif event.type == pygame.MOUSEMOTION:
                 if self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
