@@ -11,17 +11,21 @@ def check_pygame():
     """Check if pygame is installed, install if needed."""
     try:
         import pygame
+        import mendeleev
         print(f"✓ pygame {pygame.version.vernum} is installed")
+        print(f"✓ mendeleev {mendeleev.__version__} is installed")
         return True
-    except ImportError:
-        print("pygame is not installed. Installing...")
+    except ImportError as e:
+        print(f"pygame or mendeleev is not installed. Installing...")
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "mendeleev"])
             print("✓ pygame installed successfully")
+            print("✓ mendeleev installed successfully")
             return True
         except subprocess.CalledProcessError:
-            print("✗ Failed to install pygame")
-            print("Please install manually: pip install pygame")
+            print("✗ Failed to install pygame or mendeleev")
+            print("Please install manually: pip install pygame mendeleev")
             return False
 
 
