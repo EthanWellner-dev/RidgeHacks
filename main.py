@@ -80,10 +80,10 @@ class GameApplication:
             'height': 500
         }
         
-        water = Chemical("H2O",[("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)
-        acid = Chemical("H2SO4",[("H", 2), ("S", 1), ("O", 4)], 0.0, "#FF0000", -813)
-        base = Chemical("NaOH", [("Na", 1), ("O", 1), ("H", 1)], 0.0, "#0000FF", -427)
-        gas = Chemical("O2", [("O", 2)], 0.0, "#87CEEB", 0)
+        water = Chemical("H2O",[("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8, "liquid")
+        acid = Chemical("H2SO4",[("H", 2), ("S", 1), ("O", 4)], 0.0, "#FF0000", -813, "liquid")
+        base = Chemical("NaOH", [("Na", 1), ("O", 1), ("H", 1)], 0.0, "#0000FF", -427, "solid")
+        gas = Chemical("O2", [("O", 2)], 0.0, "#87CEEB", 0, "gas")
         
         left_x = 40
         start_y = 140
@@ -145,11 +145,11 @@ class GameApplication:
             pass
 
         known = {
-            'H2O': Chemical('H2O', [('H',2),('O',1)], 0.0, '#87CEEB', -285.8),
-            'HCl': Chemical('HCl', [('H',1),('Cl',1)], 0.0, '#FF6666', -92.3),
-            'NH3': Chemical('NH3',[('N',1),('H',3)], 0.0, '#CCCCFF', -45.9),
-            'NaOH': Chemical('NaOH', [('Na',1),('O',1),('H',1)], 0.0, '#AAAAFF', -137.1),
-            'O2': Chemical('O2', [('O',2)], 0.0, '#87CEEB', 0.0)
+            'H2O': Chemical('H2O', [('H',2),('O',1)], 0.0, '#87CEEB', -285.8, 'liquid'),
+            'HCl': Chemical('HCl', [('H',1),('Cl',1)], 0.0, '#FF6666', -92.3, 'gas'),
+            'NH3': Chemical('NH3',[('N',1),('H',3)], 0.0, '#CCCCFF', -45.9, 'gas'),
+            'NaOH': Chemical('NaOH', [('Na',1),('O',1),('H',1)], 0.0, '#AAAAFF', -137.1, 'solid'),
+            'O2': Chemical('O2', [('O',2)], 0.0, '#87CEEB', 0.0, 'gas')
         }
 
         left_x = 40
@@ -159,7 +159,7 @@ class GameApplication:
         idx = 0
         for name, enabled in molecules.items():
             if not enabled: continue
-            chem = known.get(name, Chemical(name,[], 0.0, '#808080', 0.0))
+            chem = known.get(name, Chemical(name,[], 0.0, '#808080', 0.0, 'gas'))
             challenge_droppers.append(Dropper(left_x, start_y + idx * spacing_y, chem, 0.1, width=80, height=90, label=name))
             idx += 1
 

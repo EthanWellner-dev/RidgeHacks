@@ -27,10 +27,10 @@ from game.dropper import Dropper, TitrationDropper
 
 def make_sample_chemicals():
     return [
-        Chemical('Water', [("H", 2), ("O", 1)], 1.0, '#4D5966', 0.0),
-        Chemical('Acid', [("H", 1), ("Cl", 1)], 0.2, '#D32F2F', -50.0),
-        Chemical('Base', [("Na", 1), ("O", 1), ("H", 1)], 0.2, '#2E6BD1', -20.0),
-        Chemical('O2', [("O", 2)], 0.0, '#3A4B4C', 0.0)
+        Chemical('Water', [("H", 2), ("O", 1)], 1.0, '#4D5966', 0.0, 'liquid'),
+        Chemical('Acid', [("H", 1), ("Cl", 1)], 0.2, '#D32F2F', -50.0, 'aqueous'),
+        Chemical('Base', [("Na", 1), ("O", 1), ("H", 1)], 0.2, '#2E6BD1', -20.0, 'solid'),
+        Chemical('O2', [("O", 2)], 0.0, '#3A4B4C', 0.0, 'gas')
     ]
 def check_pygame():
     """Check if pygame is installed, install if needed."""

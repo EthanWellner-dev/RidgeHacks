@@ -2,6 +2,8 @@
 ChemicalState - Central state management for all chemicals and reactions.
 """
 
+import json
+import os
 from chemistry.chemical import Chemical
 from chemistry.reaction import Reaction
 
@@ -27,6 +29,9 @@ class ChemicalState:
         self.chemicals = {}      # {Chemical: moles}
         self.reactions = []      # [Reaction, ...]
         self.catalyst_factor = 1.0
+        
+        # Cache for chemical objects created from database
+        self._chemical_cache = {}  # {name: Chemical}
     
     def react(self) -> None:
         """With the addition of a new component, update all reactions and shift chemicals accordingly."""
@@ -49,8 +54,128 @@ class ChemicalState:
         # Update reactions list to only include applicable ones
         self.reactions = applicable_reactions
         
-        # TODO: Integrate with reaction discovery system to add new applicable reactions
-        # based on the current set of chemicals. This would involve:
+        # Load new applicable reactions from database based on current chemicals
+        self.load_reactions_from_database()
+        
+
+    def load_reactions_from_database(self, db_path: str = None) -> None:
+        """
+        Load reactions from the database JSON file and add applicable ones to the system.
+        
+        Args:
+            db_path: Path to the database JSON file. If None, uses default 'db.json'
+        """
+        if db_path is None:
+            # Find db.json in the project root
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)  # Go up one level from chemistry/
+            db_path = os.path.join(project_root, 'db.json')
+        
+        try:
+            with open(db_path, 'r') as f:
+                db = json.load(f)
+        except FileNotFoundError:
+            print(f"Warning: Database file not found at {db_path}")
+            return
+        except json.JSONDecodeError:
+            print(f"Warning: Invalid JSON in database file {db_path}")
+            return
+        
+        # Load reactions from database
+        reactions_data = db.get('reactions', {})
+        molecules_data = db.get('molecules', {})
+        
+        for reaction_name, reaction_data in reactions_data.items():
+            try:
+                # Create reactant Chemical objects
+                reactants = {}
+                for chem_name, coeff in reaction_data['reactants'].items():
+                    chem_obj = self._get_or_create_chemical(chem_name, molecules_data)
+                    if chem_obj:
+                        reactants[chem_obj] = coeff
+                
+                # Create product Chemical objects
+                products = {}
+                for chem_name, coeff in reaction_data['products'].items():
+                    chem_obj = self._get_or_create_chemical(chem_name, molecules_data)
+                    if chem_obj:
+                        products[chem_obj] = coeff
+                
+                # Only create reaction if we have valid reactants and products
+                if reactants and products:
+                    reaction = Reaction(
+                        name=reaction_name,
+                        reactants=reactants,
+                        products=products,
+                        kc=reaction_data.get('kc', 1.0),
+                        rate_constant=reaction_data.get('rate_constant', 1.0),
+                        delta_h=reaction_data.get('delta_h', 0.0),
+                        activation_energy=reaction_data.get('activation_energy', 50.0)
+                    )
+                    
+                    # Check if this reaction is applicable (all reactants exist in current state)
+                    reactants_available = all(
+                        chemical in self.chemicals 
+                        for chemical in reaction.reactants.keys()
+                    )
+                    
+                    if reactants_available:
+                        self.add_reaction(reaction)
+                        
+            except (KeyError, TypeError) as e:
+                print(f"Warning: Invalid reaction data for '{reaction_name}': {e}")
+                continue
+    
+    def _get_or_create_chemical(self, name: str, molecules_data: dict) -> Chemical:
+        """
+        Get a Chemical object from cache or create it from database data.
+        
+        Args:
+            name: Chemical name (may include state like "H2(g)")
+            molecules_data: Molecules section from database
+            
+        Returns:
+            Chemical object or None if creation fails
+        """
+        # Check cache first
+        if name in self._chemical_cache:
+            return self._chemical_cache[name]
+        
+        # Try to create from database
+        if name in molecules_data:
+            mol_data = molecules_data[name]
+            try:
+                chemical = Chemical(
+                    name=name,
+                    components=mol_data['components'],
+                    moles=0.0,  # Will be set when added to state
+                    color_hex=mol_data['color_hex'],
+                    enthalpy=mol_data['enthalpy'],
+                    state=mol_data.get('state', 'gas')  # Default to gas if not specified
+                )
+                self._chemical_cache[name] = chemical
+                return chemical
+            except (KeyError, TypeError) as e:
+                print(f"Warning: Invalid molecule data for '{name}': {e}")
+                return None
+        
+        # If not in database, try to create a basic chemical (for generic names)
+        print(f"Warning: Chemical '{name}' not found in database, creating basic entry")
+        try:
+            # Create a basic chemical with empty components (will need manual definition)
+            chemical = Chemical(
+                name=name,
+                components=[],  # Empty components - needs to be defined manually
+                moles=0.0,
+                color_hex="#808080",  # Gray for unknown
+                enthalpy=0.0,
+                state="gas"  # Default state
+            )
+            self._chemical_cache[name] = chemical
+            return chemical
+        except Exception as e:
+            print(f"Error creating basic chemical '{name}': {e}")
+            return None
         # 1. Querying a reaction database or registry for possible reactions
         # 2. Checking if each possible reaction is already in self.reactions
         # 3. Adding new applicable reactions via add_reaction()
@@ -72,6 +197,7 @@ class ChemicalState:
         
         # Update concentration immediately
         chemical.update_concentration(self.volume)
+        self.react()  # Check for reaction updates after adding chemical
     
     def add_reaction(self, reaction: Reaction) -> None:
         """Add a reaction to the system."""

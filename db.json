@@ -22,16 +22,109 @@
         "I": "A black, crystalline solid at room temperature."
     },
     "molecules": {
-
+        "H2(g)": {
+            "components": [["H", 2]],
+            "state": "gas",
+            "color_hex": "#FFFF00",
+            "enthalpy": 0.0
+        },
+        "O2(g)": {
+            "components": [["O", 2]],
+            "state": "gas",
+            "color_hex": "#87CEEB",
+            "enthalpy": 0.0
+        },
+        "H2O(g)": {
+            "components": [["H", 2], ["O", 1]],
+            "state": "gas",
+            "color_hex": "#E0E0E0",
+            "enthalpy": -241.8
+        },
+        "H2O(l)": {
+            "components": [["H", 2], ["O", 1]],
+            "state": "liquid",
+            "color_hex": "#87CEEB",
+            "enthalpy": -285.8
+        },
+        "H+(aq)": {
+            "components": [["H", 1]],
+            "state": "aqueous",
+            "color_hex": "#FFFFFF",
+            "enthalpy": 0.0
+        },
+        "OH-(aq)": {
+            "components": [["O", 1], ["H", 1]],
+            "state": "aqueous",
+            "color_hex": "#FFFFFF",
+            "enthalpy": -229.9
+        },
+        "H2SO4(l)": {
+            "components": [["H", 2], ["S", 1], ["O", 4]],
+            "state": "liquid",
+            "color_hex": "#FF0000",
+            "enthalpy": -813.0
+        },
+        "NaOH(s)": {
+            "components": [["Na", 1], ["O", 1], ["H", 1]],
+            "state": "solid",
+            "color_hex": "#FFFFFF",
+            "enthalpy": -427.0
+        },
+        "HCl(g)": {
+            "components": [["H", 1], ["Cl", 1]],
+            "state": "gas",
+            "color_hex": "#FF6666",
+            "enthalpy": -92.3
+        },
+        "NH3(g)": {
+            "components": [["N", 1], ["H", 3]],
+            "state": "gas",
+            "color_hex": "#CCCCFF",
+            "enthalpy": -45.9
+        },
+        "NaOH(aq)": {
+            "components": [["Na", 1], ["O", 1], ["H", 1]],
+            "state": "aqueous",
+            "color_hex": "#AAAAFF",
+            "enthalpy": -470.1
+        },
+        "H2O2(l)": {
+            "components": [["H", 2], ["O", 2]],
+            "state": "liquid",
+            "color_hex": "#CCCCCC",
+            "enthalpy": -187.8
+        },
+        "MnO2(s)": {
+            "components": [["Mn", 1], ["O", 2]],
+            "state": "solid",
+            "color_hex": "#404040",
+            "enthalpy": -520.0
+        }
     },
     "reactions": {
-        "Example": {
-            "reactants": {"H2": 2, "O2": 1},
-            "products": {"H2O": 2},
-            "kc": 1.0,
-            "rate_constant": 1.0,
+        "Hydrogen Combustion": {
+            "reactants": {"H2(g)": 2, "O2(g)": 1},
+            "products": {"H2O(g)": 2},
+            "kc": 1e30,
+            "rate_constant": 0.1,
             "delta_h": -285.8,
             "activation_energy": 50.0
+        },
+        "Water Formation": {
+            "reactants": {"H2(g)": 2, "O2(g)": 1},
+            "products": {"H2O(l)": 2},
+            "kc": 1e40,
+            "rate_constant": 0.05,
+            "delta_h": -571.6,
+            "activation_energy": 75.0
+        },
+        "Acid Base Neutralization": {
+            "reactants": {"H+(aq)": 1, "OH-(aq)": 1},
+            "products": {"H2O(l)": 1},
+            "kc": 1e14,
+            "rate_constant": 1e10,
+            "delta_h": -55.8,
+            "activation_energy": 10.0
         }
     }
 }

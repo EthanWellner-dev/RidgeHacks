@@ -11,7 +11,7 @@ from chemistry.flask import Flask
 def test_chemical():
     """Test Chemical class."""
     print("\n=== Testing Chemical ===")
-    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 1.0, "#87CEEB", -285.8)  # Light blue, exothermic
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 1.0, "#87CEEB", -285.8, "liquid")  # Light blue, exothermic
     print(f"Created: {h2o}")
     
     h2o.add_moles(0.5)
@@ -26,9 +26,9 @@ def test_reaction():
     print("\n=== Testing Reaction ===")
     
     # Simple reaction: 2H2 + O2 -> 2H2O
-    h2 = Chemical("H2", [("H", 2)], 1.0, "#FFFF00", 0)      # Yellow
-    o2 = Chemical("O2", [("O", 2)], 0.5, "#87CEEB", 0)      # Light blue
-    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8)  # Water, exothermic
+    h2 = Chemical("H2", [("H", 2)], 1.0, "#FFFF00", 0, "gas")      # Yellow
+    o2 = Chemical("O2", [("O", 2)], 0.5, "#87CEEB", 0, "gas")      # Light blue
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8, "liquid")  # Water, exothermic
     
     # Concentrations matter for Q calculation
     h2.concentration = 1.0
@@ -61,9 +61,9 @@ def test_chemical_state():
     print(f"Initial state: {state}")
     
     # Add some chemicals
-    h2 = Chemical("H2", [("H", 2)], 2.0, "#FFFF00", 0)
-    o2 = Chemical("O2", [("O", 2)], 1.0, "#87CEEB", 0)
-    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8)
+    h2 = Chemical("H2", [("H", 2)], 2.0, "#FFFF00", 0, "gas")
+    o2 = Chemical("O2", [("O", 2)], 1.0, "#87CEEB", 0, "gas")
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8, "liquid")
     
     state.add_chemical(h2, 2.0)
     state.add_chemical(o2, 1.0)
@@ -102,9 +102,9 @@ def test_flask():
     print(f"Visual data: {flask.get_visual_data()}")
     
     # Add chemicals
-    h2 = Chemical("H2", [("H", 2)], 2.0, "#FFFF00", 0)
-    o2 = Chemical("O2", [("O", 2)], 1.0, "#87CEEB", 0)
-    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8)
+    h2 = Chemical("H2", [("H", 2)], 2.0, "#FFFF00", 0, "gas")
+    o2 = Chemical("O2", [("O", 2)], 1.0, "#87CEEB", 0, "gas")
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8, "liquid")
     
     flask.add_reactant(h2, 2.0)
     flask.add_reactant(o2, 1.0)

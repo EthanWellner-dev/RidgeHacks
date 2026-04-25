@@ -8,7 +8,7 @@ class Chemical:
     A chemical substance with molar quantity, color representation, and thermodynamic properties.
     """
     
-    def __init__(self, name: str, components: list, moles: float, color_hex: str, enthalpy: float):
+    def __init__(self, name: str, components: list, moles: float, color_hex: str, enthalpy: float, state: str = "gas"):
         """
         Initialize a chemical.
         
@@ -18,12 +18,14 @@ class Chemical:
             moles: Current molar amount
             color_hex: Hex color code for visualization (e.g., "#FFD700")
             enthalpy: Molar enthalpy in kJ/mol
+            state: Physical state ("gas", "liquid", "solid", "aqueous")
         """
         self.name = name
         self.components = components
         self.moles = max(0, moles)  # Cannot have negative moles
         self.color_hex = color_hex
         self.enthalpy = enthalpy
+        self.state = state  # Physical state: gas, liquid, solid, aqueous
         self.concentration = 0.0  # M (will be calculated from moles/volume)
     
     def set_moles(self, moles: float) -> None:
@@ -51,5 +53,6 @@ class Chemical:
         for val in self.components:
             amounts[val][0] = val[1] * self.moles
         return amounts
+    
     def __repr__(self) -> str:
-        return f"Chemical({self.name}, {self.moles:.3f} mol, {self.color_hex})"
+        return f"Chemical({self.name}({self.state}), {self.moles:.3f} mol, {self.color_hex})"
