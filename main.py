@@ -353,7 +353,93 @@ class GameApplication:
         
         elif self.state in [AppState.SANDBOX, AppState.CHALLENGE]:
             render_data = self.game_mode.get_render_data()
-            
+
+            # Draw sidebars (background + separators)
+            left_width = 140
+            right_width = 300
+            padding = 20
+            self.renderer.render_sidebars(left_width=left_width, right_width=right_width, padding=padding)
+
+            # Sidebar rectangles (for hit-testing and state)
+            left_x = padding
+            left_y = padding
+            left_w = left_width
+            left_h = self.height - padding * 2
+
+            right_x = self.width - right_width - padding
+            right_y = padding
+            right_w = right_width
+            right_h = self.height - padding * 2
+
+            # Ensure right-sidebar UI elements (pH strip, thermometer, hotplate)
+            # are positioned within the dedicated right column. Also sync object
+            # bounds and set in_sidebar/active flags so they are inert until
+            # dragged into the main area.
+            sidebar_inner_x = right_x + 20
+            y_start = 120
+            y_spacing = 120
+            idx_right = 0
+            # Iterate and apply sidebar positioning and object sync
+            for elm in render_data.get('ui_elements', []):
+                t = elm.get('type')
+                d = elm.get('data')
+                obj = elm.get('obj')
+
+                # if this is a right-sidebar tool, place it in the column
+                if t in ('ph_strip', 'thermometer', 'hotplate'):
+                    d['x'] = sidebar_inner_x
+                    d['y'] = y_start + idx_right * y_spacing
+                    # reasonable defaults
+                    if 'width' not in d:
+                        d['width'] = 40 if t == 'ph_strip' else d.get('width', 60)
+                    if 'height' not in d:
+                        d['height'] = 200 if t == 'ph_strip' else d.get('height', 60)
+                    # mark as in sidebar
+                    if t == 'ph_strip':
+                        d['in_sidebar'] = True
+                    idx_right += 1
+
+                # Sync back to object bounds if object reference exists
+                if obj is not None:
+                    # place object's bounds to the render-data position so click math matches visuals
+                    ox = int(d.get('x', obj.bounds.get('x', 0)))
+                    oy = int(d.get('y', obj.bounds.get('y', 0)))
+                    ow = int(d.get('width', obj.bounds.get('width', obj.width if hasattr(obj, 'width') else 0)))
+                    oh = int(d.get('height', obj.bounds.get('height', obj.height if hasattr(obj, 'height') else 0)))
+                    # update object position and bounds
+                    if hasattr(obj, 'x'):
+                        try:
+                            obj.x = ox
+                        except Exception:
+                            pass
+                    if hasattr(obj, 'y'):
+                        try:
+                            obj.y = oy
+                        except Exception:
+                            pass
+                    obj.bounds = {'x': ox, 'y': oy, 'width': ow, 'height': oh}
+
+                    # Determine whether object sits in left or right sidebar
+                    in_left = (ox >= left_x and ox <= left_x + left_w)
+                    in_right = (ox >= right_x and ox <= right_x + right_w)
+
+                    if in_left or in_right:
+                        obj.in_sidebar = True
+                        obj.active = False
+                    else:
+                        obj.in_sidebar = False
+                        obj.active = True
+
+                # For ph_strip data without obj, set in_sidebar flag
+                if t == 'ph_strip' and isinstance(d, dict):
+                    px = int(d.get('x', 0))
+                    py = int(d.get('y', 0))
+                    pw = int(d.get('width', 40))
+                    ph = int(d.get('height', 200))
+                    in_left = (px >= left_x and px <= left_x + left_w)
+                    in_right = (px >= right_x and px <= right_x + right_w)
+                    d['in_sidebar'] = in_left or in_right
+
             # Render flask
             if render_data['flask']:
                 self.renderer.render_flask(render_data['flask'])

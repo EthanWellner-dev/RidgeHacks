@@ -121,6 +121,36 @@ class PygameRenderer:
     def clear(self) -> None:
         """Clear screen with background color."""
         self.screen.fill(self.colors['background'])
+
+    def render_sidebars(self, left_width: int = 140, right_width: int = 300, padding: int = 20) -> None:
+        """Render left and right sidebar backgrounds and vertical separators.
+
+        Args:
+            left_width: Width of left sidebar in pixels
+            right_width: Width of right sidebar in pixels
+            padding: Outer padding from screen edges
+        """
+        # Left sidebar area
+        lx = padding
+        ly = padding
+        lw = left_width
+        lh = self.height - padding * 2
+        pygame.draw.rect(self.screen, (245, 247, 250), (lx, ly, lw, lh))
+        pygame.draw.rect(self.screen, (200, 200, 200), (lx, ly, lw, lh), 1)
+
+        # Right sidebar area
+        rx = self.width - right_width - padding
+        ry = padding
+        rw = right_width
+        rh = self.height - padding * 2
+        pygame.draw.rect(self.screen, (245, 247, 250), (rx, ry, rw, rh))
+        pygame.draw.rect(self.screen, (200, 200, 200), (rx, ry, rw, rh), 1)
+
+        # Vertical separators
+        sep_x1 = lx + lw + 8
+        sep_x2 = rx - 8
+        pygame.draw.line(self.screen, (180, 180, 180), (sep_x1, 0), (sep_x1, self.height), 2)
+        pygame.draw.line(self.screen, (180, 180, 180), (sep_x2, 0), (sep_x2, self.height), 2)
     
     def render_flask(self, flask_data: Dict) -> None:
         """
@@ -176,7 +206,8 @@ class PygameRenderer:
         chems = flask_data.get('chemicals', [])
         if chems:
             label_x = x + width // 2
-            label_y = y - 28
+            # place labels below the flask so they are always visible
+            label_y = y + height + 8
             # Compose a short label: name (moles) for up to 3 chemicals
             lines = []
             for c in chems[:3]:
@@ -249,9 +280,14 @@ class PygameRenderer:
         
         # Draw label
         label = self._to_subscript(dropper_data['label'])
-        label_surface = self.fonts['medium'].render(label, True, border_color)
-        label_rect = label_surface.get_rect(center=(x + width // 2, y + height // 2))
-        self.screen.blit(label_surface, label_rect)
+        # If dropper is in a sidebar, place its label to the right for readability
+        if dropper_data.get('in_sidebar'):
+            label_surface = self.fonts['small'].render(label, True, (0, 0, 0))
+            self.screen.blit(label_surface, (x + width + 6, y + height // 2 - 8))
+        else:
+            label_surface = self.fonts['medium'].render(label, True, border_color)
+            label_rect = label_surface.get_rect(center=(x + width // 2, y + height // 2))
+            self.screen.blit(label_surface, label_rect)
         
         # Draw cooldown indicator
         cooldown = dropper_data['cooldown']
@@ -297,8 +333,13 @@ class PygameRenderer:
         
         # Temperature text
         temp_text = thermo_data['temperature_text']
-        temp_surface = self.fonts['small'].render(temp_text, True, (0, 0, 0))
-        self.screen.blit(temp_surface, (x - 30, bulb_y - 5))
+        # If thermometer is in sidebar, place label to the right
+        if thermo_data.get('in_sidebar'):
+            temp_surface = self.fonts['small'].render(temp_text, True, (0, 0, 0))
+            self.screen.blit(temp_surface, (x + self.font_sizes['small']//2 + 8, bulb_y - 5))
+        else:
+            temp_surface = self.fonts['small'].render(temp_text, True, (0, 0, 0))
+            self.screen.blit(temp_surface, (x - 30, bulb_y - 5))
     
     def render_hotplate(self, hotplate_data: Dict) -> None:
         """
@@ -321,10 +362,15 @@ class PygameRenderer:
         # Draw label
         label = hotplate_data['label']
         state = "ON" if hotplate_data['is_on'] else "OFF"
-        label_text = f"{label}\n{state}"
-        label_surface = self.fonts['small'].render(label_text, True, (0, 0, 0))
-        label_rect = label_surface.get_rect(center=(x + width // 2, y + height // 2))
-        self.screen.blit(label_surface, label_rect)
+        label_text = f"{label} {state}"
+        # If hotplate is in sidebar, place its label to the right
+        if hotplate_data.get('in_sidebar'):
+            label_surface = self.fonts['small'].render(label_text, True, (0, 0, 0))
+            self.screen.blit(label_surface, (x + width + 6, y + height // 2 - 8))
+        else:
+            label_surface = self.fonts['small'].render(label_text, True, (0, 0, 0))
+            label_rect = label_surface.get_rect(center=(x + width // 2, y + height // 2))
+            self.screen.blit(label_surface, label_rect)
         
         # Heat level indicator
         if hotplate_data['is_on']:
@@ -368,20 +414,36 @@ class PygameRenderer:
                 y = int(pd['y'])
                 w = int(pd['width'])
                 h = int(pd['height'])
-                pygame.draw.rect(self.screen, (230,230,230), (x, y, w, h))
-                pygame.draw.rect(self.screen, (0,0,0), (x, y, w, h), 2)
-                # If current_ph present, render numeric value and a colored indicator
+                # Draw strip background: default light gray border
+                pygame.draw.rect(self.screen, (230, 230, 230), (x, y, w, h))
+                pygame.draw.rect(self.screen, (0, 0, 0), (x, y, w, h), 2)
+
+                def ph_to_rgb(ph_val: float) -> tuple:
+                    """Map pH [0..14] to RGB roughly from red -> green -> blue."""
+                    t = max(0.0, min(14.0, ph_val)) / 14.0
+                    r = int(255 * (1 - min(1.0, t * 2)))
+                    g = int(255 * (1 - abs(t - 0.5) * 2))
+                    b = int(255 * min(1.0, t * 2))
+                    return (r, g, b)
+
                 cur = pd.get('current_ph')
-                if cur is not None:
+                if cur is None:
+                    # Draw vertical gradient from pH 0..14 when not reading
+                    for i in range(h):
+                        # map pixel to pH value (top -> 14, bottom -> 0)
+                        rel = 1.0 - (i / max(1, h - 1))
+                        ph_val = rel * 14.0
+                        pygame.draw.line(self.screen, ph_to_rgb(ph_val), (x, y + i), (x + w, y + i))
+                    # border over gradient
+                    pygame.draw.rect(self.screen, (0, 0, 0), (x, y, w, h), 2)
+                else:
+                    # Fill entire strip with color matching current pH
+                    color = ph_to_rgb(cur)
+                    pygame.draw.rect(self.screen, color, (x + 1, y + 1, w - 2, h - 2))
+                    # Draw numeric pH readout to the right of strip
                     ph_text = f"pH: {cur:.2f}"
-                    surf = self.fonts['small'].render(ph_text, True, (0,0,0))
-                    self.screen.blit(surf, (x + w + 8, y + h//2 - 8))
-                    # color mapping: 0 (red) -> 7 (green) -> 14 (blue)
-                    t = max(0.0, min(14.0, cur)) / 14.0
-                    r = int(255 * (1 - min(1.0, t*2)))
-                    g = int(255 * (1 - abs(t-0.5)*2))
-                    b = int(255 * min(1.0, t*2))
-                    pygame.draw.rect(self.screen, (r,g,b), (x, y - 12, w, 8))
+                    surf = self.fonts['small'].render(ph_text, True, (0, 0, 0))
+                    self.screen.blit(surf, (x + w + 8, y + h // 2 - 8))
     
     def render_challenge_info(self, challenge_data: Dict) -> None:
         """

@@ -41,6 +41,9 @@ class HotPlate:
             'width': self.width,
             'height': self.height
         }
+        # Whether this hotplate is currently placed in a sidebar (inactive)
+        self.in_sidebar = False
+        self.active = True
     
     def on_click(self, mouse_x: float, mouse_y: float) -> bool:
         """
@@ -53,6 +56,9 @@ class HotPlate:
         Returns:
             True if hotplate was clicked (toggled)
         """
+        # Do not toggle if placed in a sidebar (inactive)
+        if getattr(self, 'in_sidebar', False):
+            return False
         bounds = self.bounds
         if (bounds['x'] <= mouse_x <= bounds['x'] + bounds['width'] and
             bounds['y'] <= mouse_y <= bounds['y'] + bounds['height']):
@@ -128,6 +134,7 @@ class HotPlate:
             'is_on': self.is_on,
             'heat_output': self.get_heat_output(),
             'max_heat': self.max_heat_output
+            , 'in_sidebar': getattr(self, 'in_sidebar', False), 'active': getattr(self, 'active', True)
         }
     
     def __repr__(self) -> str:

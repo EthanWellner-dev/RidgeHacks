@@ -175,8 +175,8 @@ class Flask:
                 if name.startswith('H') and name != 'H2O':
                     total_H += moles * 0.5
 
-        # Convert to concentrations (mol/L)
-        vol = max(1e-6, float(self.volume))
+        # Convert to concentrations (mol/L) using chemical_state's volume
+        vol = max(1e-6, float(self.chemical_state.volume))
         H_conc = total_H / vol
         OH_conc = total_OH / vol
 

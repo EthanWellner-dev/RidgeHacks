@@ -43,6 +43,9 @@ class Thermometer:
         }
         
         self.bulb_radius = self.width / 2
+        # Sidebar state
+        self.in_sidebar = False
+        self.active = True
     
     def set_temperature(self, temp_celsius: float) -> None:
         """
@@ -130,6 +133,7 @@ class Thermometer:
             'min_label': f"{self.min_temp_c:.0f}",
             'max_label': f"{self.max_temp_c:.0f}",
             'unit': self.label
+            , 'in_sidebar': getattr(self, 'in_sidebar', False), 'active': getattr(self, 'active', True)
         }
     
     def __repr__(self) -> str:

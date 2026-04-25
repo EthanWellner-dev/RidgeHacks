@@ -154,6 +154,10 @@ class GameMode:
         """Handle mouse click."""
         # Check dropper clicks
         for dropper in self.droppers:
+            # If dropper is placed in a sidebar, clicking should pick it up (drag),
+            # not immediately dispense. Only dispense when active (not in_sidebar).
+            if getattr(dropper, 'in_sidebar', False):
+                continue
             if dropper.on_mouse_down(mouse_x, mouse_y):
                 dispense_data = dropper.dispense()
                 self.flask.add_reactant(dispense_data['chemical'], dispense_data['moles'])
@@ -181,7 +185,8 @@ class GameMode:
             self.ph_strip['y'] = int(mouse_y - off_y)
 
         if self.hotplate:
-            self.hotplate.on_mouse_move(mouse_x, mouse_y)
+            if not getattr(self.hotplate, 'in_sidebar', False):
+                self.hotplate.on_mouse_move(mouse_x, mouse_y)
 
     def on_mouse_down(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
         """Start drag/press behavior for droppers."""
@@ -198,6 +203,7 @@ class GameMode:
 
         # Start dragging if a dropper is pressed
         for dropper in self.droppers:
+            # Allow picking up droppers whether they're in a sidebar or not
             if dropper.on_mouse_down(mouse_x, mouse_y):
                 self.dragging_dropper = dropper
                 self.drag_pos = (mouse_x, mouse_y)
@@ -205,7 +211,8 @@ class GameMode:
 
         # Hotplate press
         if self.hotplate:
-            if self.hotplate.on_click(mouse_x, mouse_y):
+            # Only toggle if hotplate is active (not placed in sidebar)
+            if not getattr(self.hotplate, 'in_sidebar', False) and self.hotplate.on_click(mouse_x, mouse_y):
                 return
 
     def on_mouse_up(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
@@ -296,7 +303,11 @@ class GameMode:
             fx, fy, fw, fh = fb.get('x', 0), fb.get('y', 0), fb.get('width', 0), fb.get('height', 0)
             # overlap test
             overlap = not (pbx + pbw < fx or pbx > fx + fw or pby + pbh < fy or pby > fy + fh)
-            self.ph_strip['current_ph'] = ph_val if overlap else None
+            # Only report a pH value when the strip is not sitting in a sidebar
+            if not self.ph_strip.get('in_sidebar', False) and overlap:
+                self.ph_strip['current_ph'] = ph_val
+            else:
+                self.ph_strip['current_ph'] = None
         
         # Check challenge state (if in challenge mode)
         if self.mode_type == "challenge" and self.challenge:
@@ -340,7 +351,8 @@ class GameMode:
         for dropper in self.droppers:
             data['ui_elements'].append({
                 'type': 'dropper',
-                'data': dropper.get_render_data()
+                'data': dropper.get_render_data(),
+                'obj': dropper
             })
 
         # Add pH strip render data
@@ -353,13 +365,15 @@ class GameMode:
         if self.thermometer:
             data['ui_elements'].append({
                 'type': 'thermometer',
-                'data': self.thermometer.get_render_data()
+                'data': self.thermometer.get_render_data(),
+                'obj': self.thermometer
             })
         
         if self.hotplate:
             data['ui_elements'].append({
                 'type': 'hotplate',
-                'data': self.hotplate.get_render_data()
+                'data': self.hotplate.get_render_data(),
+                'obj': self.hotplate
             })
 
         # Drag preview (if dragging a dropper)

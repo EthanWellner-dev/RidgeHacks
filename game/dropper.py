@@ -43,6 +43,9 @@ class Dropper:
             'width': self.width,
             'height': self.height
         }
+        # Whether this dropper is currently placed in a sidebar (inactive)
+        self.in_sidebar = False
+        self.active = True
     
     def update(self, delta_time: float) -> None:
         """Update cooldown timer."""
@@ -124,6 +127,7 @@ class Dropper:
             'label_color': self.chemical.color_hex if self.chemical else "#FFFFFF",
             'cooldown': self.click_cooldown,
             'cooldown_max': self.click_delay
+            , 'in_sidebar': getattr(self, 'in_sidebar', False), 'active': getattr(self, 'active', True)
         }
     
     def __repr__(self) -> str:
