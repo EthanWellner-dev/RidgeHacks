@@ -4,7 +4,7 @@ ParticleEmitter - Manages spawning and updating groups of particles.
 
 import random
 import math
-from particle import Particle
+from chemistry.particle import Particle
 
 
 class ParticleEmitter:

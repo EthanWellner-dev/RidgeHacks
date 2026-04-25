@@ -2,8 +2,8 @@
 Challenge - Goal-oriented puzzle scenarios.
 """
 
-from flask import Flask
-from chemical import Chemical
+from chemistry.flask import Flask
+from chemistry.chemical import Chemical
 
 
 class Challenge:

@@ -3,7 +3,7 @@ Reaction - Represents a reversible chemical reaction with equilibrium and kineti
 """
 
 import math
-from chemical import Chemical
+from chemistry.chemical import Chemical
 import mendeleev # elements
 
 class Reaction:

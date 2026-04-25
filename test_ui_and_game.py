@@ -2,15 +2,15 @@
 test_ui_and_game.py - Tests for UI elements and GameMode integration.
 """
 
-from chemical import Chemical
+from chemistry.chemical import Chemical
 from flask import Flask
-from particle_emitter import ParticleEmitter
-from dropper import Dropper
-from thermometer import Thermometer
-from hotplate import HotPlate
-from challenge import Challenge, ChallengeLibrary
-from game_mode import GameMode
-from rigid_body import RigidBody
+from chemistry.particle_emitter import ParticleEmitter
+from game.dropper import Dropper
+from game.thermometer import Thermometer
+from game.hotplate import HotPlate
+from game.challenge import Challenge, ChallengeLibrary
+from game.game_mode import GameMode
+from game.rigid_body import RigidBody
 
 
 def test_dropper():
@@ -236,7 +236,7 @@ def test_full_integration():
     print("\n=== Full Integration Test ===")
     
     # Setup chemistry
-    from reaction import Reaction
+    from chemistry.reaction import Reaction
     
     h2 = Chemical("H2", 1.0, "#FFFF00", 0)
     o2 = Chemical("O2", 0.5, "#87CEEB", 0)

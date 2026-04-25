@@ -2,8 +2,8 @@
 Flask - The main vessel containing all chemicals, reactions, and particles.
 """
 
-from chemical import Chemical
-from chemical_state import ChemicalState
+from chemistry.chemical import Chemical
+from chemistry.chemical_state import ChemicalState
 
 
 class Flask:

@@ -21,8 +21,8 @@ import random
 from typing import List
 
 from pygame_renderer import PygameRenderer
-from chemical import Chemical
-from dropper import Dropper, TitrationDropper
+from chemistry.chemical import Chemical
+from game.dropper import Dropper, TitrationDropper
 
 
 def make_sample_chemicals():

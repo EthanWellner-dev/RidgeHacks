@@ -8,14 +8,14 @@ import sys
 from enum import Enum
 
 from pygame_renderer import PygameRenderer
-from game_mode import GameMode
-from challenge import ChallengeLibrary
-from chemical import Chemical
-from flask import Flask
-from dropper import Dropper
-from thermometer import Thermometer
-from hotplate import HotPlate
-from particle_emitter import ParticleEmitter
+from game.game_mode import GameMode
+from game.challenge import ChallengeLibrary
+from chemistry.chemical import Chemical
+from chemistry.flask import Flask
+from game.dropper import Dropper
+from game.thermometer import Thermometer
+from game.hotplate import HotPlate
+from chemistry.particle_emitter import ParticleEmitter
 
 
 class AppState(Enum):

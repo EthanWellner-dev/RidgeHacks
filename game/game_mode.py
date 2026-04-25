@@ -2,11 +2,11 @@
 GameMode - Orchestrates game states and modes (Sandbox, Challenge, Menu).
 """
 
-from flask import Flask
-from challenge import Challenge
-from dropper import Dropper
-from thermometer import Thermometer
-from hotplate import HotPlate
+from chemistry.flask import Flask
+from game.challenge import Challenge
+from game.dropper import Dropper
+from game.thermometer import Thermometer
+from game.hotplate import HotPlate
 
 
 class GameMode:

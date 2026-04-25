@@ -2,8 +2,8 @@
 ChemicalState - Central state management for all chemicals and reactions.
 """
 
-from chemical import Chemical
-from reaction import Reaction
+from chemistry.chemical import Chemical
+from chemistry.reaction import Reaction
 
 
 class ChemicalState:
