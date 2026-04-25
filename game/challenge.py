@@ -211,7 +211,7 @@ class Challenge:
             'time_progress': progress,
             'win_conditions': self.win_conditions,
             'current_color': self.flask.color_hex if self.flask else "#FFFFFF",
-            'current_temp': self.flask.chemical_state.temperature if self.flask else 293.15
+            'current_temp': self.flask.chemical_state.get_average_temperature() if self.flask else 293.15
         }
     
     def __repr__(self) -> str:

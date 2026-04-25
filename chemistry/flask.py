@@ -77,11 +77,13 @@ class Flask:
     def adjust_temperature(self, delta_temp: float) -> None:
         """
         Adjust temperature by delta (can be from exothermic reactions).
+        Applies the temperature change to all chemicals.
         
         Args:
             delta_temp: Temperature change in Kelvin
         """
-        new_temp = self.chemical_state.temperature + delta_temp
+        current_avg_temp = self.chemical_state.get_average_temperature()
+        new_temp = current_avg_temp + delta_temp
         self.set_temperature(new_temp)
     
     def update(self, delta_time: float) -> dict:
@@ -95,7 +97,7 @@ class Flask:
             dict with update metadata
         """
         # Update chemistry
-        chem_update = self.chemical_state.update(delta_time)
+        chem_update = self.chemical_state.update(delta_time, ambient_temp=293.15)
         
         # Apply heat from reactions to temperature
         heat_change_kj = chem_update.get('total_heat_change', 0.0)
@@ -112,7 +114,7 @@ class Flask:
                 emitter.update(delta_time)
         
         return {
-            'temperature': self.chemical_state.temperature,
+            'temperature': self.chemical_state.get_average_temperature(),
             'is_boiling': self.is_boiling,
             'color_hex': self.color_hex,
             'reactions_fired': chem_update.get('reactions_fired', [])
@@ -230,4 +232,4 @@ class Flask:
         self.color_hex = "#FFFFFF"
     
     def __repr__(self) -> str:
-        return f"Flask({self.volume}L, T={self.chemical_state.temperature:.1f}K, {len(self.chemical_state.chemicals)} chemicals)"
+        return f"Flask({self.volume}L, T={self.chemical_state.get_average_temperature():.1f}K, {len(self.chemical_state.chemicals)} chemicals)"

@@ -20,10 +20,9 @@ class ChemicalState:
         
         Args:
             volume: Container volume in liters
-            temperature: Initial temperature in Kelvin (default 293.15K = 20°C)
+            temperature: Initial temperature for all chemicals in Kelvin (default 293.15K = 20°C)
         """
         self.volume = volume
-        self.temperature = temperature
         self.pressure = 1.0  # atm (will be calculated from ideal gas law)
         
         self.chemicals = {}      # {Chemical: moles}
@@ -32,6 +31,9 @@ class ChemicalState:
         
         # Cache for chemical objects created from database
         self._chemical_cache = {}  # {name: Chemical}
+        
+        # Set initial temperature for all chemicals
+        self._initial_temperature = temperature
     
     def react(self) -> None:
         """With the addition of a new component, update all reactions and shift chemicals accordingly."""
@@ -191,6 +193,8 @@ class ChemicalState:
         """
         if chemical not in self.chemicals:
             self.chemicals[chemical] = 0.0
+            # Set initial temperature for new chemicals
+            chemical.set_temperature(self._initial_temperature)
         
         self.chemicals[chemical] += moles
         self.chemicals[chemical] = max(0, self.chemicals[chemical])
@@ -205,8 +209,17 @@ class ChemicalState:
             self.reactions.append(reaction)
     
     def set_temperature(self, temperature: float) -> None:
-        """Set system temperature in Kelvin."""
-        self.temperature = max(0, temperature)
+        """
+        Apply heating/cooling to all chemicals to reach target temperature.
+        This simulates external heating (like a hotplate).
+        
+        Args:
+            temperature: Target temperature in Kelvin
+        """
+        for chemical in self.chemicals.keys():
+            # Calculate temperature difference and apply it
+            temp_diff = temperature - chemical.temperature
+            chemical.adjust_temperature(temp_diff)
     
     def set_catalyst_factor(self, factor: float) -> None:
         """
@@ -222,18 +235,24 @@ class ChemicalState:
         for chemical in self.chemicals.keys():
             chemical.update_concentration(self.volume)
     
-    def update(self, delta_time: float) -> dict:
+    def update(self, delta_time: float, ambient_temp: float = 293.15) -> dict:
         """
         Update all reactions and recalculate equilibrium.
+        Also update temperatures using Newton's law of cooling/heating.
         Shifts chemicals based on reaction directions.
         
         Args:
             delta_time: Time step in seconds
+            ambient_temp: Ambient temperature for cooling calculations
         
         Returns:
             dict with 'total_heat_change' (kJ) and 'reactions_fired'
         """
         self.update_concentrations()
+        
+        # Update temperatures using Newton's law
+        for chemical in self.chemicals.keys():
+            chemical.update_temperature(delta_time, ambient_temp)
         
         total_heat_change = 0.0
         reactions_fired = []
@@ -245,8 +264,12 @@ class ChemicalState:
             if direction == "equilibrium":
                 continue
             
+            # Calculate average temperature of reactants for reaction rate
+            reactant_temps = [chem.temperature for chem in reaction.reactants.keys() if chem in self.chemicals]
+            avg_temp = sum(reactant_temps) / len(reactant_temps) if reactant_temps else ambient_temp
+            
             # Calculate reaction rate
-            rate = reaction.calculate_rate(self.temperature, self.catalyst_factor)
+            rate = reaction.calculate_rate(avg_temp, self.catalyst_factor)
             
             # Calculate extent of reaction for this time step
             reaction_extent = rate * delta_time
@@ -327,18 +350,36 @@ class ChemicalState:
         
         return f"#{r:02X}{g:02X}{b:02X}"
     
+    def get_average_temperature(self) -> float:
+        """
+        Calculate the average temperature of all chemicals weighted by moles.
+        
+        Returns:
+            Average temperature in Kelvin
+        """
+        if not self.chemicals:
+            return 293.15  # Room temperature default
+        
+        total_moles = sum(self.chemicals.values())
+        if total_moles == 0:
+            return 293.15
+        
+        weighted_temp = sum(chem.temperature * moles for chem, moles in self.chemicals.items())
+        return weighted_temp / total_moles
+    
     def get_net_temperature_change(self) -> float:
         """
         Calculate cumulative temperature change from recent reactions.
-        (To be called each update and used to modify system temperature)
+        This is now handled by individual chemical temperatures.
         
         Returns:
-            Temperature change in Kelvin
+            Average temperature change (placeholder for compatibility)
         """
-        # This is simplified; in reality you'd track heat capacity
-        # For now, return placeholder
+        # Individual chemicals now handle their own temperature changes
+        # This method is kept for compatibility but returns average temp change
         return 0.0
     
     def __repr__(self) -> str:
+        avg_temp = self.get_average_temperature()
         chem_str = ", ".join([f"{c.name}: {m:.2f} mol" for c, m in self.chemicals.items()])
-        return f"ChemicalState(T={self.temperature}K, V={self.volume}L, Chemicals: {chem_str})"
+        return f"ChemicalState(T_avg={avg_temp:.1f}K, V={self.volume}L, Chemicals: {chem_str})"

@@ -289,7 +289,7 @@ class GameMode:
         
         # Update thermometer display
         if self.thermometer:
-            self.thermometer.set_temperature_kelvin(self.flask.chemical_state.temperature)
+            self.thermometer.set_temperature_kelvin(self.flask.chemical_state.get_average_temperature())
 
         # Update pH strip current reading if overlapping flask
         if hasattr(self, 'ph_strip') and self.ph_strip and self.flask:
