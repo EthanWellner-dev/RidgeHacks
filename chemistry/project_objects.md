@@ -3,7 +3,7 @@
 ## Core Chemical Classes
 
 ### `Chemical`
-Represents a single chemical substance in the system. Stores the name, current molar amount, color representation (as hex), enthalpy value, and calculated concentration. This is the fundamental building block for all reactions in the system.
+Represents a single chemical substance in the system. Stores the name, current molar amount, color representation (as hex), enthalpy value, and calculated concentration (molarity). Chemicals may optionally include a per-chemical `volume` hint; otherwise the container volume is used to compute molarity. Water (`H2O`) is modeled explicitly and contributes to effective solution volume (dilution).
 
 **Properties:**
 - Name identifier
@@ -20,7 +20,7 @@ Represents a single chemical substance in the system. Stores the name, current m
 **Implementation Note:** `chemical.py` (DO NOT BUILD) will expose a method to return human-friendly information about a chemical (for example `get_info()` or `get_component_details()`). This method will be used by UI elements and documentation to display the chemical's name, current concentration, color (hex), enthalpy, and other relevant properties.
 
 ### `Reaction`
-Represents a single reversible chemical reaction with reactants and products. Stores the equilibrium constant (Kc), rate constant for Arrhenius equation, and enthalpy change (ΔH). Provides methods to calculate the reaction quotient Q, determine equilibrium shift direction, and compute reaction rate based on temperature and catalysts.
+Represents a single reversible chemical reaction with reactants and (optional) products. Reactions now support unspecified/unknown products (e.g., net consumption or decomposition without tracking products). Stores the equilibrium constant (Kc), rate constant for Arrhenius equation, and enthalpy change (ΔH). Provides methods to calculate the reaction quotient Q, determine equilibrium shift direction, and compute reaction rate based on temperature and catalysts. A helper `describe_equilibrium()` returns the current Q, Kc, and suggested direction — this is used by UI to explain what 'at equilibrium' means for the reaction.
 
 **Key Methods:**
 - Calculate reaction quotient (Q) from current concentrations
@@ -30,7 +30,7 @@ Represents a single reversible chemical reaction with reactants and products. St
 ---
 
 ### `ChemicalState`
-Central state management matrix that tracks all chemicals present, all active reactions, current temperature, volume, and derived pressure. Acts as the hub for all chemistry calculations and updates each frame.
+Central state management matrix that tracks all chemicals present, all active reactions, current temperature, volume, and derived pressure. Acts as the hub for all chemistry calculations and updates each frame. ChemicalState computes an `effective_volume` which includes the base container volume plus solvent contributions (1 mol H2O ≈ 0.018 L) so that adding water dilutes solutes automatically.
 
 **Key Properties:**
 - Dictionary of chemicals with their molar amounts
@@ -44,6 +44,10 @@ Central state management matrix that tracks all chemicals present, all active re
 - Update all reaction states and recalculate equilibrium each frame
 - Calculate net color by blending all chemical colors
 - Sum temperature changes from all reactions (ΔH calculations)
+
+Additional notes:
+- Reactions are simulated in molar terms and are limited by the available stoichiometric amounts (limiting reagent logic). Reaction rate calculations return an approximate mol/s rate which the state applies per timestep.
+- The `Flask.react(duration=15)` helper on `Flask` executes the chemistry update loop across a 15-second period (by default) using small timesteps; temperature and color are updated progressively during this period so UI or tests can call `react()` to run a short simulation window.
 
 ---
 

@@ -119,6 +119,56 @@ class Flask:
             'color_hex': self.color_hex,
             'reactions_fired': chem_update.get('reactions_fired', [])
         }
+
+    def react(self, duration: float = 15.0, step: float = 1.0) -> dict:
+        """
+        Simulate reactions over a defined duration (default 15 seconds).
+
+        Args:
+            duration: total time to simulate in seconds (default 15s)
+            step: timestep to use for internal updates (seconds)
+
+        Returns:
+            Aggregated metadata from the simulation period
+        """
+        elapsed = 0.0
+        total_reactions = []
+        total_heat = 0.0
+
+        # Clamp step
+        step = max(0.01, float(step))
+
+        while elapsed < duration:
+            dt = min(step, duration - elapsed)
+            result = self.chemical_state.update(dt)
+            heat_change_kj = result.get('total_heat_change', 0.0)
+            total_heat += heat_change_kj
+
+            # Apply heat to temperature (kept same dampening as update())
+            delta_temp = heat_change_kj * 0.001
+            self.adjust_temperature(delta_temp)
+
+            # Accumulate reactions
+            total_reactions.extend(result.get('reactions_fired', []))
+
+            elapsed += dt
+
+            # Early exit if no reactions fired in this step
+            if not result.get('reactions_fired') and elapsed >= duration:
+                break
+
+        # Refresh visual properties
+        self.color_hex = self.chemical_state.get_net_color()
+        self.is_boiling = (self.chemical_state.temperature >= self.max_temperature)
+
+        return {
+            'duration': duration,
+            'steps': int(max(1, duration / step)),
+            'total_heat_change_kj': total_heat,
+            'reactions_fired': total_reactions,
+            'temperature': self.chemical_state.temperature,
+            'is_boiling': self.is_boiling,
+        }
     
     def get_visual_data(self) -> dict:
         """
@@ -187,12 +237,20 @@ class Flask:
             return None
 
         import math
-        if H_conc >= OH_conc:
-            net_H = max(1e-14, H_conc - OH_conc)
+        # If concentrations are very close, treat as neutral (pH ~7)
+        eps = 1e-12
+        if abs(H_conc - OH_conc) <= eps:
+            return 7.0
+
+        if H_conc > OH_conc:
+            net_H = H_conc - OH_conc
+            # avoid zero/negative
+            net_H = max(net_H, 1e-14)
             ph = -math.log10(net_H)
         else:
             net_OH = OH_conc - H_conc
-            poh = -math.log10(max(1e-14, net_OH))
+            net_OH = max(net_OH, 1e-14)
+            poh = -math.log10(net_OH)
             ph = 14.0 - poh
 
         # Clamp

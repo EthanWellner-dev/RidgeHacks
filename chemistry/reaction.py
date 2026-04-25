@@ -40,6 +40,8 @@ class Reaction:
         self.delta_h = delta_h
         self.activation_energy = activation_energy
         self.direction = "equilibrium"  # 'forward', 'reverse', or 'equilibrium'
+        # products may be None meaning unspecified/unknown products
+        self.products = products or {}
     
     def calculate_q(self) -> float:
         """
@@ -52,8 +54,8 @@ class Reaction:
         numerator = 1.0
         denominator = 1.0
         
-        # Calculate product concentrations term
-        for chemical, coeff in self.products.items():
+        # Calculate product concentrations term (if products unknown, numerator stays 1)
+        for chemical, coeff in (self.products or {}).items():
             numerator *= (chemical.concentration ** coeff)
         
         # Calculate reactant concentrations term
@@ -87,16 +89,14 @@ class Reaction:
         return self.direction
     
     def calculate_rate(self, temperature: float, catalyst_factor: float = 1.0) -> float:
-        """
-        Calculate reaction rate using Arrhenius equation:
-        k = A * e^(-Ea/RT)
-        
+        """Calculate reaction rate using Arrhenius equation.
+
+        Interprets the returned value as a rough molar rate (mol/s) for the system.
         Args:
             temperature: Temperature in Kelvin
             catalyst_factor: Multiplier for catalyst (1.0 = no catalyst)
-        
         Returns:
-            Reaction rate multiplier
+            Reaction rate in mol/s (approximate)
         """
         if temperature <= 0:
             return 0.0
@@ -118,12 +118,23 @@ class Reaction:
         Calculate total heat change for given reaction extent.
         
         Args:
-            reaction_extent: Fraction of reaction that occurred (0 to 1)
-        
+            reaction_extent: Amount reacted in moles
         Returns:
             Heat change in kJ (positive = exothermic/heat released)
         """
         return self.delta_h * reaction_extent
+
+    def describe_equilibrium(self) -> dict:
+        """Return a human-friendly description of the equilibrium state for this reaction."""
+        q = self.calculate_q()
+        direction = self.calculate_shift()
+        return {
+            'reaction': repr(self),
+            'Q': q,
+            'Kc': self.kc,
+            'direction': direction,
+            'rule': 'At equilibrium Q == Kc. If Q < Kc reaction proceeds forward; if Q > Kc proceeds reverse.'
+        }
     
     def __repr__(self) -> str:
         reactant_str = " + ".join([f"{coeff}{chem.name}" for chem, coeff in self.reactants.items()])

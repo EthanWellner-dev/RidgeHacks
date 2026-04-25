@@ -32,6 +32,8 @@ class GameMode:
         self.droppers = []
         self.thermometer = None
         self.hotplate = None
+        self.temp_changer = None
+        self.stopwatch = None
         # Drag state for droppers
         self.dragging_dropper = None
         self.drag_pos = (0, 0)
@@ -43,7 +45,9 @@ class GameMode:
     
     def initialize_sandbox(self, flask: Flask, droppers: list = None, 
                           thermometer: Thermometer = None,
-                          hotplate: HotPlate = None) -> None:
+                          hotplate: HotPlate = None,
+                          temp_changer=None,
+                          stopwatch=None) -> None:
         """
         Set up sandbox mode.
         
@@ -60,12 +64,18 @@ class GameMode:
         self.droppers = droppers or []
         self.thermometer = thermometer
         self.hotplate = hotplate
+        self.temp_changer = temp_changer
+        self.stopwatch = stopwatch
         
         self.ui_elements = self.droppers.copy()
         if self.thermometer:
             self.ui_elements.append(self.thermometer)
         if self.hotplate:
             self.ui_elements.append(self.hotplate)
+        if self.temp_changer:
+            self.ui_elements.append(self.temp_changer)
+        if self.stopwatch:
+            self.ui_elements.append(self.stopwatch)
         
         self.is_active = True
         self.state_message = "Sandbox Mode - Experiment freely!"
@@ -81,7 +91,9 @@ class GameMode:
     
     def initialize_challenge(self, challenge: Challenge,
                             thermometer: Thermometer = None,
-                            hotplate: HotPlate = None) -> None:
+                            hotplate: HotPlate = None,
+                            temp_changer=None,
+                            stopwatch=None) -> None:
         """
         Set up challenge mode.
         
@@ -98,12 +110,18 @@ class GameMode:
         self.droppers = []  # Challenges may not allow free droppers
         self.thermometer = thermometer
         self.hotplate = hotplate
+        self.temp_changer = temp_changer
+        self.stopwatch = stopwatch
         
         self.ui_elements = []
         if self.thermometer:
             self.ui_elements.append(self.thermometer)
         if self.hotplate:
             self.ui_elements.append(self.hotplate)
+        if self.temp_changer:
+            self.ui_elements.append(self.temp_changer)
+        if self.stopwatch:
+            self.ui_elements.append(self.stopwatch)
         
         self.is_active = True
         self.state_message = challenge.description
@@ -166,6 +184,14 @@ class GameMode:
         if self.hotplate:
             if self.hotplate.on_click(mouse_x, mouse_y):
                 pass  # Toggled on/off
+        # Temperature changer click
+        if getattr(self, 'temp_changer', None):
+            if self.temp_changer.on_click(mouse_x, mouse_y):
+                return
+        # Stopwatch click
+        if getattr(self, 'stopwatch', None):
+            if self.stopwatch.on_click(mouse_x, mouse_y):
+                return
     
     def on_mouse_move(self, mouse_x: float, mouse_y: float) -> None:
         """Handle mouse move."""
@@ -187,6 +213,12 @@ class GameMode:
         if self.hotplate:
             if not getattr(self.hotplate, 'in_sidebar', False):
                 self.hotplate.on_mouse_move(mouse_x, mouse_y)
+        if getattr(self, 'temp_changer', None):
+            if not getattr(self.temp_changer, 'in_sidebar', False):
+                self.temp_changer.on_mouse_move(mouse_x, mouse_y)
+        if getattr(self, 'stopwatch', None):
+            if not getattr(self.stopwatch, 'in_sidebar', False):
+                self.stopwatch.on_mouse_move(mouse_x, mouse_y)
 
     def on_mouse_down(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
         """Start drag/press behavior for droppers."""
@@ -213,6 +245,14 @@ class GameMode:
         if self.hotplate:
             # Use the `active` flag to decide whether hotplate should respond
             if getattr(self.hotplate, 'active', True) and self.hotplate.on_click(mouse_x, mouse_y):
+                return
+        # Handle temp_changer press (start a small interaction)
+        if getattr(self, 'temp_changer', None):
+            if getattr(self.temp_changer, 'active', True) and self.temp_changer.on_click(mouse_x, mouse_y):
+                return
+        # Stopwatch press
+        if getattr(self, 'stopwatch', None):
+            if getattr(self.stopwatch, 'active', True) and self.stopwatch.on_click(mouse_x, mouse_y):
                 return
 
     def on_mouse_up(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
@@ -245,6 +285,10 @@ class GameMode:
         if self.hotplate:
             if hasattr(self.hotplate, 'on_mouse_up'):
                 self.hotplate.on_mouse_up()
+        if getattr(self, 'temp_changer', None) and hasattr(self.temp_changer, 'on_mouse_up'):
+            self.temp_changer.on_mouse_up()
+        if getattr(self, 'stopwatch', None) and hasattr(self.stopwatch, 'on_mouse_up'):
+            self.stopwatch.on_mouse_up()
     
     def on_key_press(self, key_name: str) -> None:
         """Handle keyboard input."""
@@ -284,7 +328,17 @@ class GameMode:
         
         # Apply hotplate heat
         if self.hotplate:
-            heat_output = self.hotplate.get_heat_output()
+            # If hotplate has an external controller (TemperatureChanger), ask it
+            # to compute the desired heat output based on current flask temp.
+            heat_output = 0.0
+            if getattr(self.hotplate, 'controller', None) is not None:
+                cur_temp = None
+                if self.flask and hasattr(self.flask, 'chemical_state') and hasattr(self.flask.chemical_state, 'temperature'):
+                    cur_temp = self.flask.chemical_state.temperature
+                heat_output = self.hotplate.controller.get_heat_output(self.hotplate.max_heat_output, cur_temp)
+            else:
+                heat_output = self.hotplate.get_heat_output()
+
             self.flask.adjust_temperature(heat_output * delta_time)
         
         # Update thermometer display
@@ -374,6 +428,18 @@ class GameMode:
                 'type': 'hotplate',
                 'data': self.hotplate.get_render_data(),
                 'obj': self.hotplate
+            })
+        if getattr(self, 'temp_changer', None):
+            data['ui_elements'].append({
+                'type': 'temp_changer',
+                'data': self.temp_changer.get_render_data(),
+                'obj': self.temp_changer
+            })
+        if getattr(self, 'stopwatch', None):
+            data['ui_elements'].append({
+                'type': 'stopwatch',
+                'data': self.stopwatch.get_render_data(),
+                'obj': self.stopwatch
             })
 
         # Drag preview (if dragging a dropper)

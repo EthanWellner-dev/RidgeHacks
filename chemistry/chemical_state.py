@@ -729,8 +729,20 @@ class ChemicalState:
     
     def update_concentrations(self) -> None:
         """Recalculate all chemical concentrations based on moles and volume."""
+        # Compute effective volume: include water contributions as solvent
+        water_moles = 0.0
         for chemical in self.chemicals.keys():
-            chemical.update_concentration(self.volume)
+            if getattr(chemical, 'name', '').upper() in ('H2O', 'WATER'):
+                water_moles += self.chemicals.get(chemical, 0.0)
+
+        # Approximate: 1 mol H2O ≈ 0.018 L (18 g, density ≈1 g/mL)
+        extra_vol = water_moles * 0.018
+        self.effective_volume = max(self.volume, self.volume + extra_vol)
+
+        for chemical in self.chemicals.keys():
+            # Sync chemical object's molar amount with the stored amount
+            chemical.moles = self.chemicals.get(chemical, 0.0)
+            chemical.update_concentration(self.effective_volume)
     
     def update(self, delta_time: float, ambient_temp: float = 293.15) -> dict:
         """
@@ -757,7 +769,7 @@ class ChemicalState:
         for reaction in self.reactions:
             # Determine reaction direction
             direction = reaction.calculate_shift()
-            
+
             if direction == "equilibrium":
                 continue
             
@@ -776,26 +788,25 @@ class ChemicalState:
             
             if reaction_extent > 0:
                 reactions_fired.append(reaction.name)
-                
-                # Apply reaction shift
-                if direction == "forward":
-                    # Consume reactants, produce products
+
+                if direction == 'forward':
+                    # Consume reactants
                     for chemical, coeff in reaction.reactants.items():
                         self.add_chemical(chemical, -coeff * reaction_extent)
-                    for chemical, coeff in reaction.products.items():
+                    # Produce products (if specified)
+                    for chemical, coeff in (reaction.products or {}).items():
                         self.add_chemical(chemical, coeff * reaction_extent)
-                    
+
                     heat_change = reaction.get_heat_change(reaction_extent)
-                
-                elif direction == "reverse":
-                    # Consume products, produce reactants
-                    for chemical, coeff in reaction.products.items():
+
+                else:  # reverse
+                    for chemical, coeff in (reaction.products or {}).items():
                         self.add_chemical(chemical, -coeff * reaction_extent)
                     for chemical, coeff in reaction.reactants.items():
                         self.add_chemical(chemical, coeff * reaction_extent)
-                    
+
                     heat_change = -reaction.get_heat_change(reaction_extent)
-                
+
                 total_heat_change += heat_change
         
         # Update concentrations after reactions

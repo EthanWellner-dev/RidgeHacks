@@ -10,7 +10,8 @@ class HotPlate:
     """
     
     def __init__(self, x: float, y: float, max_heat_output: float = 200.0,
-                 width: float = 60, height: float = 60, label: str = "Heat"):
+                 width: float = 60, height: float = 60, label: str = "Heat",
+                 controller=None):
         """
         Initialize a hotplate.
         
@@ -28,6 +29,8 @@ class HotPlate:
         self.width = float(width)
         self.height = float(height)
         self.label = label
+        # Optional external controller (e.g., TemperatureChanger)
+        self.controller = controller
         
         # State
         self.is_on = False
@@ -63,7 +66,13 @@ class HotPlate:
         bounds = self.bounds
         if (bounds['x'] <= mouse_x <= bounds['x'] + bounds['width'] and
             bounds['y'] <= mouse_y <= bounds['y'] + bounds['height']):
-            self.is_on = not self.is_on
+            # If an external controller drives the hotplate, clicking the main
+            # body toggles controller enable/disable instead of raw on/off.
+            if self.controller is not None:
+                # Toggle controller active flag if present
+                self.controller.active = not getattr(self.controller, 'active', True)
+            else:
+                self.is_on = not self.is_on
             return True
         return False
     
@@ -97,9 +106,23 @@ class HotPlate:
         Returns:
             Temperature change per second (K/s)
         """
-        if self.is_on:
-            return self.max_heat_output * self.heat_level
-        return 0.0
+        # If an external controller is present, ask it to compute required output.
+        # The controller expects (max_heat_output, current_temp_k) and returns K/s.
+        if self.controller is not None:
+            # Controller will return desired heat in K/s (clamped already)
+            # The caller (GameMode) should pass current temperature to this method
+            # via an updated signature; for backward compatibility, we keep this
+            # method simple and return based on controller.target if available.
+            if hasattr(self.controller, 'get_target_kelvin'):
+                # Without the current temperature we can't compute exact power; return
+                # a conservative estimate based on current heat_level flag.
+                if getattr(self, 'is_on', False):
+                    return self.max_heat_output * self.heat_level
+                return 0.0
+        else:
+            if self.is_on:
+                return self.max_heat_output * self.heat_level
+            return 0.0
     
     def get_render_data(self) -> dict:
         """
@@ -122,6 +145,10 @@ class HotPlate:
         if self.is_hovered:
             color = hover_color
         
+        extra = {}
+        if self.controller is not None:
+            extra['controller_target_k'] = getattr(self.controller, 'target_k', None)
+
         return {
             'x': self.bounds['x'],
             'y': self.bounds['y'],
@@ -136,6 +163,7 @@ class HotPlate:
             'heat_output': self.get_heat_output(),
             'max_heat': self.max_heat_output
             , 'in_sidebar': getattr(self, 'in_sidebar', False), 'active': getattr(self, 'active', True)
+        , **extra
         }
     
     def __repr__(self) -> str:

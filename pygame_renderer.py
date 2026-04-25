@@ -4,7 +4,6 @@ Converts backend data into pygame graphics.
 """
 
 import pygame
-import math
 from typing import Dict, List, Tuple
 
 
@@ -43,6 +42,12 @@ class PygameRenderer:
             'large': 24,
             'title': 36
         }
+        
+        # --- ADDED LOGIC: State trackers for temperature changes ---
+        self.last_challenge_temp = None
+        self.last_thermo_temp = None
+        # -----------------------------------------------------------
+
     
     def initialize(self) -> None:
         """Initialize pygame display."""
@@ -148,6 +153,13 @@ class PygameRenderer:
     
     def render_flask(self, flask_data: Dict) -> None:
         """Render the flask container."""
+        # --- ADDED LOGIC: Trigger reaction if 2 or more chemicals are present ---
+        chems = flask_data.get('chemicals',[])
+        if len(chems) >= 2:
+            if hasattr(flask_data, 'react'):
+                flask_data.react()
+        # ------------------------------------------------------------------------
+
         bounds = flask_data['bounds']
         x = bounds['x']
         y = bounds['y']
@@ -185,7 +197,6 @@ class PygameRenderer:
         if flask_data['is_boiling']:
             self._render_boiling_effect(x, y, width, height)
 
-        chems = flask_data.get('chemicals',[])
         if chems:
             label_x = x + width // 2
             label_y = y + height + 8
@@ -198,6 +209,7 @@ class PygameRenderer:
                 surf = self.fonts['small'].render(line, True, (0, 0, 0))
                 rect = surf.get_rect(center=(label_x, label_y + i * 14))
                 self.screen.blit(surf, rect)
+
     
     def _render_boiling_effect(self, x: float, y: float, width: float, height: float) -> None:
         """Render boiling water visual effect."""
@@ -295,6 +307,11 @@ class PygameRenderer:
 
     def render_thermometer(self, thermo_data: Dict) -> None:
         """Render a thermometer UI element."""
+        # --- ADDED LOGIC: Track temperature changes in Sandbox mode ---
+        current_temp_text = thermo_data.get('temperature_text', '')
+        self.last_thermo_temp = current_temp_text
+        # --------------------------------------------------------------
+
         x = int(thermo_data['x'])
         y = int(thermo_data['y'])
         width = int(thermo_data['width'])
@@ -325,6 +342,7 @@ class PygameRenderer:
         else:
             temp_surface = self.fonts['small'].render(temp_text, True, (0, 0, 0))
             self.screen.blit(temp_surface, (x - 30, bulb_y - 5))
+
     
     def render_hotplate(self, hotplate_data: Dict) -> None:
         """Render a hotplate UI control."""
@@ -355,6 +373,50 @@ class PygameRenderer:
             indicator_height = int(height * level)
             pygame.draw.rect(self.screen, (255, 100, 0), (x + 2, y + height - indicator_height - 2, 
                                                           width - 4, indicator_height))
+
+    def render_temp_changer(self, data: Dict) -> None:
+        """Render the temperature changer control with +/- halves."""
+        x = int(data['x'])
+        y = int(data['y'])
+        w = int(data['width'])
+        h = int(data['height'])
+
+        # background
+        pygame.draw.rect(self.screen, (230, 230, 230), (x, y, w, h))
+        pygame.draw.rect(self.screen, (0, 0, 0), (x, y, w, h), 2)
+
+        # left half decrease (yellow)
+        pygame.draw.rect(self.screen, (255, 230, 100), (x, y, w//2, h))
+        # right half increase (red)
+        pygame.draw.rect(self.screen, (255, 120, 120), (x + w//2, y, w - w//2, h))
+
+        # target text
+        target_k = data.get('target_k', 0.0)
+        txt = f"{target_k:.0f}K"
+        surf = self.fonts['small'].render(txt, True, (0, 0, 0))
+        rect = surf.get_rect(center=(x + w//2, y + h//2))
+        self.screen.blit(surf, rect)
+
+    def render_stopwatch(self, data: Dict) -> None:
+        x = int(data['x'])
+        y = int(data['y'])
+        w = int(data['width'])
+        h = int(data['height'])
+
+        pygame.draw.rect(self.screen, (245, 245, 245), (x, y, w, h))
+        pygame.draw.rect(self.screen, (0, 0, 0), (x, y, w, h), 2)
+
+        # start/stop area
+        sw = int(w * 0.7)
+        pygame.draw.rect(self.screen, (120, 200, 120) if data.get('running') else (255, 235, 120), (x, y, sw, h))
+        # reset area
+        pygame.draw.rect(self.screen, (255, 120, 120), (x + sw, y, w - sw, h))
+
+        t = data.get('time', 0.0)
+        txt = f"{t:.1f}s"
+        surf = self.fonts['small'].render(txt, True, (0, 0, 0))
+        rect = surf.get_rect(center=(x + w//2, y + h//2))
+        self.screen.blit(surf, rect)
     
     def render_ui_elements(self, ui_elements: List[Dict]) -> None:
         """
@@ -375,6 +437,16 @@ class PygameRenderer:
                     self._render_icon(data, "Hotplate")
                 else:
                     self.render_hotplate(data)
+            elif element_type == 'temp_changer':
+                if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
+                    self._render_icon(data, "Temp")
+                else:
+                    self.render_temp_changer(data)
+            elif element_type == 'stopwatch':
+                if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
+                    self._render_icon(data, "Timer")
+                else:
+                    self.render_stopwatch(data)
             elif element_type == 'magnifier':
                 if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
                     self._render_icon(data, "Magnifier", self.assets.get('magnifier'))
@@ -433,6 +505,140 @@ class PygameRenderer:
                     self.screen.blit(surf, (x + w + 8, y + h // 2 - 8))
     
     def render_challenge_info(self, challenge_data: Dict) -> None:
+        """Render challenge information overlay."""
+        # --- ADDED LOGIC: Track temperature changes in Challenge mode ---
+        current_temp = challenge_data.get('current_temp', 293.15)
+        self.last_challenge_temp = current_temp
+        # ----------------------------------------------------------------
+
+        left_x = 20
+        left_y = 20
+
+        title_text = f"Challenge: {challenge_data['name']}"
+        title_surface = self.fonts['large'].render(title_text, True, (0, 0, 0))
+        self.screen.blit(title_surface, (left_x, left_y))
+        left_y += 35
+
+        desc_text = challenge_data.get('description', '')
+        desc_surface = self.fonts['small'].render(desc_text, True, (64, 64, 64))
+        self.screen.blit(desc_surface, (left_x, left_y))
+        left_y += 24
+
+        if challenge_data.get('time_limit'):
+            time_text = f"Time: {challenge_data['time_elapsed']:.1f}s / {challenge_data['time_limit']:.0f}s"
+            time_surface = self.fonts['medium'].render(time_text, True, (0, 0, 0))
+            self.screen.blit(time_surface, (left_x, left_y))
+            left_y += 25
+
+            bar_width = 200
+            bar_height = 12
+            pygame.draw.rect(self.screen, (220, 220, 220), (left_x, left_y, bar_width, bar_height))
+            progress_width = int(bar_width * challenge_data.get('time_progress', 0.0))
+            pygame.draw.rect(self.screen, (0, 150, 0), (left_x, left_y, progress_width, bar_height))
+            pygame.draw.rect(self.screen, (0, 0, 0), (left_x, left_y, bar_width, bar_height), 1)
+
+        sidebar_w = 300
+        sidebar_x = self.width - sidebar_w - 20
+        sidebar_y = 20
+        sidebar_padding = 12
+
+        pygame.draw.rect(self.screen, (245, 245, 250), (sidebar_x, sidebar_y, sidebar_w, self.height - 40))
+        pygame.draw.rect(self.screen, (0, 0, 0), (sidebar_x, sidebar_y, sidebar_w, self.height - 40), 2)
+
+        inner_x = sidebar_x + sidebar_padding
+        inner_y = sidebar_y + sidebar_padding
+
+        temp = challenge_data.get('current_temp', 293.15)
+        temp_text = f"{temp:.1f} K"
+        temp_label = self.fonts['medium'].render('Thermometer', True, (0, 0, 0))
+        self.screen.blit(temp_label, (inner_x, inner_y))
+        inner_y += 28
+
+        therm_img = None
+        if temp < 280 and self.assets.get('thermometerCold') is not None:
+            therm_img = self.assets['thermometerCold']
+        elif temp < 300 and self.assets.get('thermometer') is not None:
+            therm_img = self.assets['thermometer']
+        elif temp < 340 and self.assets.get('thermometerWarm') is not None:
+            therm_img = self.assets['thermometerWarm']
+        elif self.assets.get('thermometerHot') is not None:
+            therm_img = self.assets['thermometerHot']
+
+        if therm_img is None:
+            therm_img = self.assets.get('full_flask')
+
+        if therm_img is not None:
+            try:
+                img = pygame.transform.smoothscale(therm_img, (40, 120))
+                self.screen.blit(img, (inner_x, inner_y))
+            except Exception:
+                pass
+
+        temp_surf = self.fonts['small'].render(temp_text, True, (0, 0, 0))
+        self.screen.blit(temp_surf, (inner_x + 60, inner_y + 50))
+        inner_y += 140
+        try:
+            sep_y = inner_y - 10
+            pygame.draw.line(self.screen, (200, 200, 200), (sidebar_x + 8, sep_y), (sidebar_x + sidebar_w - 8, sep_y), 1)
+        except Exception:
+            pass
+
+        ph_label = self.fonts['medium'].render('pH Strip', True, (0, 0, 0))
+        self.screen.blit(ph_label, (inner_x, inner_y))
+        inner_y += 24
+
+        pygame.draw.rect(self.screen, (230,230,230), (inner_x, inner_y, 40, 160))
+        pygame.draw.rect(self.screen, (0,0,0), (inner_x, inner_y, 40, 160), 1)
+        inner_y += 170
+        try:
+            sep_y = inner_y - 10
+            pygame.draw.line(self.screen, (200, 200, 200), (sidebar_x + 8, sep_y), (sidebar_x + sidebar_w - 8, sep_y), 1)
+        except Exception:
+            pass
+
+        if challenge_data.get('time_limit'):
+            time_text = f"Time: {challenge_data['time_elapsed']:.1f}s / {challenge_data['time_limit']:.0f}s"
+            time_surface = self.fonts['small'].render(time_text, True, (0, 0, 0))
+            self.screen.blit(time_surface, (inner_x, inner_y))
+            inner_y += 24
+
+            bar_width = sidebar_w - sidebar_padding * 2
+            bar_height = 10
+            pygame.draw.rect(self.screen, (220,220,220), (inner_x, inner_y, bar_width, bar_height))
+            progress_width = int(bar_width * challenge_data.get('time_progress', 0.0))
+            pygame.draw.rect(self.screen, (0, 150, 0), (inner_x, inner_y, progress_width, bar_height))
+            pygame.draw.rect(self.screen, (0, 0, 0), (inner_x, inner_y, bar_width, bar_height), 1)
+            inner_y += 28
+
+        obj_title = self.fonts['medium'].render('Objectives', True, (0, 0, 0))
+        self.screen.blit(obj_title, (inner_x, inner_y))
+        inner_y += 24
+
+        win = challenge_data.get('win_conditions', {})
+        if 'target_color' in win:
+            sw_x = inner_x
+            sw_y = inner_y
+            sw_w = 36
+            sw_h = 24
+            color_rgb = self._hex_to_rgb(win['target_color'])
+            pygame.draw.rect(self.screen, color_rgb, (sw_x, sw_y, sw_w, sw_h))
+            pygame.draw.rect(self.screen, (0,0,0), (sw_x, sw_y, sw_w, sw_h), 1)
+            lab = self.fonts['small'].render('Target color', True, (0,0,0))
+            self.screen.blit(lab, (sw_x + sw_w + 8, sw_y))
+            inner_y += sw_h + 12
+
+        if 'min_gas' in win:
+            line = f"Produce ≥ {win['min_gas']} mol gas"
+            lsurf = self.fonts['small'].render(line, True, (30,30,30))
+            self.screen.blit(lsurf, (inner_x, inner_y)); inner_y += 18
+        if 'max_temp' in win:
+            line = f"Keep temp ≤ {win['max_temp']:.0f} K"
+            lsurf = self.fonts['small'].render(line, True, (30,30,30))
+            self.screen.blit(lsurf, (inner_x, inner_y)); inner_y += 18
+        if 'min_temp' in win:
+            line = f"Reach temp ≥ {win['min_temp']:.0f} K"
+            lsurf = self.fonts['small'].render(line, True, (30,30,30))
+            self.screen.blit(lsurf, (inner_x, inner_y)); inner_y += 18
         """Render challenge information overlay."""
         left_x = 20
         left_y = 20

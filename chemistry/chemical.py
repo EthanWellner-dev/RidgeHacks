@@ -82,10 +82,17 @@ class Chemical:
         Args:
             volume: Container volume in liters
         """
-        if volume > 0:
-            self.concentration = self.moles / volume
+        # If this chemical has its own volume hint use that, otherwise use container volume
+        effective_vol = self.volume if (self.volume is not None and self.volume > 0) else volume
+        if effective_vol > 0:
+            self.concentration = self.moles / effective_vol
         else:
             self.concentration = 0.0
+
+    @property
+    def molarity(self) -> float:
+        """Alias for concentration (mol/L)."""
+        return self.concentration
     
     def set_temperature(self, temperature: float) -> None:
         """Set temperature in Kelvin."""
@@ -131,9 +138,11 @@ class Chemical:
         return total_mass * self.moles
     
     def get_component_amounts(self) -> dict:
-        amounts = {}
-        for val in self.components:
-            amounts[val][0] = val[1] * self.moles
+        """Return a mapping of element symbol -> total atom count in current moles."""
+        amounts: dict[str, float] = {}
+        for symbol, count in self.components:
+            amounts.setdefault(symbol, 0.0)
+            amounts[symbol] += count * self.moles
         return amounts
     
     def __repr__(self) -> str:
