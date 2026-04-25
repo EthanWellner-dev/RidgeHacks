@@ -44,7 +44,8 @@ class Challenge:
         self.initial_temperature = float(initial_temperature)
         self.win_conditions = win_conditions or {}
         self.loss_conditions = loss_conditions or {'max_temp': 373.15}  # Default boil point
-        self.time_limit = float(time_limit) if time_limit else None
+        # Challenges no longer use an enforced timer; keep value for backward compatibility but ignore it
+        self.time_limit = None
         self.flask_volume = float(flask_volume)
         
         # Runtime state
@@ -86,8 +87,6 @@ class Challenge:
         if self.state in ["won", "lost"]:
             return {'status': self.state, 'message': self.get_state_message()}
         
-        self.elapsed_time += delta_time
-        
         # Check loss conditions
         loss_status = self.check_loss_condition()
         if loss_status:
@@ -125,11 +124,31 @@ class Challenge:
             if target != current:
                 return None
         
-        # Check minimum gas production
+        # Check minimum gas production (sum of gaseous species moles)
         if 'min_gas' in self.win_conditions:
-            # This would require tracking specific gas chemicals
-            # For now, check if any product chemical meets threshold
-            pass
+            try:
+                gas_threshold = float(self.win_conditions['min_gas'])
+                total_gas = 0.0
+                for chem, moles in self.flask.chemical_state.chemicals.items():
+                    if getattr(chem, 'state', 'gas') == 'gas':
+                        total_gas += moles
+                if total_gas < gas_threshold:
+                    return None
+            except Exception:
+                return None
+
+        # Check for a specific target chemical produced from given reagents
+        if 'target_chemical' in self.win_conditions:
+            target_name = self.win_conditions['target_chemical']
+            required_moles = float(self.win_conditions.get('target_moles', 0.0))
+            found = False
+            for chem, moles in self.flask.chemical_state.chemicals.items():
+                if Chemical._normalize_name(getattr(chem, 'name', '')) == Chemical._normalize_name(target_name):
+                    if moles >= required_moles:
+                        found = True
+                        break
+            if not found:
+                return None
         
         # Check temperature constraints
         if 'max_temp' in self.win_conditions:
@@ -167,12 +186,7 @@ class Challenge:
                     'message': f"❌ Flask boiled at {visual_data['temperature']:.1f}K! Challenge failed."
                 }
         
-        # Check time limit
-        if self.time_limit and self.elapsed_time > self.time_limit:
-            return {
-                'status': 'lost',
-                'message': f"⏰ Time's up! You had {self.time_limit:.0f}s."
-            }
+        # No timeouts for challenges — timing removed
         
         return None
     
@@ -197,18 +211,13 @@ class Challenge:
         Returns:
             dict with challenge display information
         """
-        progress = 0.0
-        if self.time_limit and self.time_limit > 0:
-            progress = min(1.0, self.elapsed_time / self.time_limit)
-        
         return {
             'name': self.name,
             'description': self.description,
             'status': self.state,
             'message': self.get_state_message(),
             'time_elapsed': self.elapsed_time,
-            'time_limit': self.time_limit,
-            'time_progress': progress,
+            'time_limit': None,
             'win_conditions': self.win_conditions,
             'current_color': self.flask.color_hex if self.flask else "#FFFFFF",
             'current_temp': self.flask.chemical_state.get_average_temperature() if self.flask else 293.15
@@ -240,8 +249,8 @@ class ChallengeLibrary:
             win_conditions={
                 'target_color': '#FFA500'  # Orange
             },
-            time_limit=30.0
         )
+        
     
     @staticmethod
     def create_gas_production_challenge() -> Challenge:
@@ -254,15 +263,15 @@ class ChallengeLibrary:
         
         return Challenge(
             name="Gas Burst",
-            description="Produce 0.5 moles of O2 in under 10 seconds without exceeding 350K.",
+            description="Produce 0.5 moles of O2 without overheating (no timer).",
             initial_chemicals={h2o2: 1.0},
             initial_temperature=293.15,
             win_conditions={
                 'min_gas': 0.5,
                 'max_temp': 350.0
             },
-            time_limit=10.0
         )
+        
     
     @staticmethod
     def create_equilibrium_balance_challenge() -> Challenge:
@@ -282,5 +291,4 @@ class ChallengeLibrary:
                 'max_temp': 373.15
             },
             loss_conditions={'max_temp': 373.15},
-            time_limit=60.0
         )

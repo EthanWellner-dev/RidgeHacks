@@ -80,21 +80,30 @@ class GameApplication:
         # Expanded starter chemical library for left sidebar
         water = Chemical("H2O",[("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)
         acids = [
-            Chemical('HCl', [('H',1),('Cl',1)], 0.0, '#FF6666', -92.3),
-            Chemical('H2SO4', [('H',2),('S',1),('O',4)], 0.0, '#FF4444', -814.0),
-            Chemical('HNO3', [('H',1),'N' if False else ('N',1),('O',3)], 0.0, '#FF5555', -207.0),
-            Chemical('CH3COOH', [], 0.0, '#FFA0A0', -484.0),
+            Chemical('HCl', [('H',1),('Cl',1)], 0.0, '#FF6666', -92.3, 'aqueous'),
+            Chemical('H2SO4', [('H',2),('S',1),('O',4)], 0.0, '#FF4444', -814.0, 'aqueous'),
+            Chemical('HNO3', [('H',1),('N',1),('O',3)], 0.0, '#FF5555', -207.0, 'aqueous'),
+            Chemical('CH3COOH', None, 0.0, '#FFA0A0', -484.0, 'aqueous'),
+            Chemical('H3PO4', None, 0.0, '#FF99AA', -1200.0, 'aqueous'),
+            Chemical('HF', None, 0.0, '#FF8888', -270.0, 'aqueous')
         ]
         bases = [
-            Chemical('NaOH', [('Na',1),('O',1),('H',1)], 0.0, '#0000FF', -470.0),
-            Chemical('KOH', [('K',1),('O',1),('H',1)], 0.0, '#3366FF', -420.0),
-            Chemical('NH3', [('N',1),('H',3)], 0.0, '#CCCCFF', -46.0)
+            Chemical('NaOH', None, 0.0, '#0000FF', -470.0, 'aqueous'),
+            Chemical('KOH', None, 0.0, '#3366FF', -420.0, 'aqueous'),
+            Chemical('NH3', None, 0.0, '#CCCCFF', -46.0, 'aqueous'),
+            Chemical('Ca(OH)2', None, 0.0, '#99CCFF', -980.0, 'aqueous'),
+            Chemical('LiOH', None, 0.0, '#6699FF', -300.0, 'aqueous')
         ]
-        gases = [Chemical('O2', [('O',2)], 0.0, '#87CEEB', 0.0)]
+        gases = [
+            Chemical('O2', None, 0.0, '#87CEEB', 0.0, 'gas'),
+            Chemical('CO2', None, 0.0, '#888888', -393.5, 'gas'),
+            Chemical('N2', None, 0.0, '#AAAAAA', 0.0, 'gas'),
+            Chemical('H2', None, 0.0, '#FFFFFF', 0.0, 'gas')
+        ]
 
         left_x = 40
-        start_y = 120
-        spacing_y = 110
+        start_y = 100
+        spacing_y = 90
         droppers = []
         idx = 0
         # Water first
