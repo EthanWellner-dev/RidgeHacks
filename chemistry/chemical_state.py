@@ -653,6 +653,18 @@ class ChemicalState:
         # Check cache first
         if name in self._chemical_cache:
             return self._chemical_cache[name]
+
+        # If a chemical with same normalized name already exists in the current state,
+        # return that instance so produced products map to the same object.
+        try:
+            norm = Chemical._normalize_name(name)
+            for chem in self.chemicals.keys():
+                if Chemical._normalize_name(getattr(chem, 'name', '')) == norm:
+                    # Cache this mapping for future lookups
+                    self._chemical_cache[name] = chem
+                    return chem
+        except Exception:
+            pass
         
         # Try to create from database
         if name in molecules_data:
