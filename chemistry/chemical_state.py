@@ -116,9 +116,12 @@ class ChemicalState:
                     )
                     
                     # Check if this reaction is applicable (all reactants exist in current state)
+                    # Use name-based matching since chemicals might be manually created vs database-created
+                    reactant_names = [chem.name for chem in reaction.reactants.keys()]
+                    available_chemical_names = [chem.name for chem in self.chemicals.keys()]
                     reactants_available = all(
-                        chemical in self.chemicals 
-                        for chemical in reaction.reactants.keys()
+                        reactant_name in available_chemical_names
+                        for reactant_name in reactant_names
                     )
                     
                     if reactants_available:
