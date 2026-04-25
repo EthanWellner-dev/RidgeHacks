@@ -471,13 +471,16 @@ class PygameRenderer:
                 # Always render the dynamic thermometer, even when stowed in the right sidebar
                 self.render_thermometer(data)
             elif element_type == 'hotplate':
+                # Use the tempChanger asset as the hotplate icon in the sidebar
                 if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
-                    self._render_icon(data, "Hotplate")
+                    self._render_icon(data, "Hotplate", self.assets.get('temp_changer'))
                 else:
                     self.render_hotplate(data)
             elif element_type == 'temp_changer':
+                # Show a thermometer icon for the temperature controller when stowed
                 if data.get('in_sidebar') and data.get('x', 0) > self.width // 2:
-                    self._render_icon(data, "Temp", self.assets.get('temp_changer'))
+                    # prefer a thermometer asset if available
+                    self._render_icon(data, "Temp", self.assets.get('thermometer'))
                 else:
                     self.render_temp_changer(data)
             elif element_type == 'stopwatch':
