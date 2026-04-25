@@ -289,17 +289,6 @@
             "color_hex": "#FFA500",
             "enthalpy": 0.0
         },
-        "H+(aq)": {
-            "components": [
-                [
-                    "H",
-                    1
-                ]
-            ],
-            "state": "aqueous",
-            "color_hex": "#FFFFFF",
-            "enthalpy": 0.0
-        },
         "Cl-(aq)": {
             "components": [
                 [
@@ -309,6 +298,12 @@
             ],
             "state": "aqueous",
             "color_hex": "#FFFFFF",
+            "enthalpy": 0.0
+        },
+        "Na+(aq)": {
+            "components": [],
+            "state": "gas",
+            "color_hex": "#808080",
             "enthalpy": 0.0
         }
     },
@@ -405,6 +400,20 @@
             "rate_constant": 10000.0,
             "delta_h": 0.0,
             "activation_energy": 10.0
+        },
+        "H+(aq) + NaOH(aq) \u2192 H2O(l) + Na+(aq)": {
+            "reactants": {
+                "H+(aq)": 1,
+                "NaOH(aq)": 1
+            },
+            "products": {
+                "H2O(l)": 1,
+                "Na+(aq)": 1
+            },
+            "kc": 100000000000000.0,
+            "rate_constant": 1000000.0,
+            "delta_h": -50.0,
+            "activation_energy": 20.0
         }
     }
 }
