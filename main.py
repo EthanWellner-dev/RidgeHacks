@@ -16,6 +16,8 @@ from game.dropper import Dropper
 from game.thermometer import Thermometer
 from game.hotplate import HotPlate
 from chemistry.particle_emitter import ParticleEmitter
+import json
+import os
 
 
 class AppState(Enum):
@@ -152,19 +154,38 @@ class GameApplication:
         
         print("Challenge started! Use hotplate to control temperature.")
         print("SPACE to pause, ESC to return to menu")
-        # Provide a minimal set of droppers for challenge (e.g., acid) so player can interact
-        acid = Chemical("H+", [("H", 1)], 0.0, "#FF0000", 0)
-        water = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)
-        base = Chemical("NaOH", [("Na", 1), ("O", 1), ("H", 1)], 0.0, "#0000FF", -427)
+        # Load available chemicals from save.json (only those set to true)
+        save_path = os.path.join(os.getcwd(), 'save.json')
+        molecules = {}
+        try:
+            with open(save_path, 'r', encoding='utf-8') as f:
+                saved = json.load(f)
+                molecules = saved.get('chemicals', {}).get('molecules', {})
+        except Exception:
+            molecules = {}
+
+        # Map known molecule names to basic Chemical definitions (fallback simple values)
+        known = {
+            'H2O': Chemical('H2O', [('H',2),('O',1)], 0.0, '#87CEEB', -285.8),
+            'HCl': Chemical('HCl', [('H',1),('Cl',1)], 0.0, '#FF6666', -92.3),
+            'NH3': Chemical('NH3', [('N',1),('H',3)], 0.0, '#CCCCFF', -45.9),
+            'NaOH': Chemical('NaOH', [('Na',1),('O',1),('H',1)], 0.0, '#AAAAFF', -137.1),
+            'O2': Chemical('O2', [('O',2)], 0.0, '#87CEEB', 0.0)
+        }
 
         left_x = 40
         start_y = 140
         spacing_y = 110
-        challenge_droppers = [
-            Dropper(left_x, start_y + 0 * spacing_y, water, 0.2, width=80, height=90, label="Water"),
-            Dropper(left_x, start_y + 1 * spacing_y, acid, 0.1, width=80, height=90, label="Acid"),
-            Dropper(left_x, start_y + 2 * spacing_y, base, 0.1, width=80, height=90, label="Base"),
-        ]
+        challenge_droppers = []
+        idx = 0
+        for name, enabled in molecules.items():
+            if not enabled:
+                continue
+            chem = known.get(name)
+            if not chem:
+                chem = Chemical(name, [], 0.0, '#808080', 0.0)
+            challenge_droppers.append(Dropper(left_x, start_y + idx * spacing_y, chem, 0.1, width=80, height=90, label=name))
+            idx += 1
 
         # Attach droppers to the game mode so user can add reagents in challenge
         self.game_mode.droppers = challenge_droppers

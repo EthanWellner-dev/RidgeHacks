@@ -69,6 +69,15 @@ class GameMode:
         
         self.is_active = True
         self.state_message = "Sandbox Mode - Experiment freely!"
+        # pH strip UI
+        self.ph_strip = {
+            'x':  self.flask.bounds['x'] + self.flask.bounds['width'] + 40,
+            'y': 200,
+            'width': 40,
+            'height': 200,
+            'dragging': False,
+            'current_ph': None
+        }
     
     def initialize_challenge(self, challenge: Challenge,
                             thermometer: Thermometer = None,
@@ -98,6 +107,15 @@ class GameMode:
         
         self.is_active = True
         self.state_message = challenge.description
+        # pH strip UI (right sidebar)
+        self.ph_strip = {
+            'x': int(self.flask.bounds['x'] + self.flask.bounds['width'] + 40),
+            'y': 200,
+            'width': 40,
+            'height': 200,
+            'dragging': False,
+            'current_ph': None
+        }
     
     def handle_input(self, event: dict) -> None:
         """
@@ -156,11 +174,28 @@ class GameMode:
         if self.dragging_dropper:
             self.drag_pos = (mouse_x, mouse_y)
 
+        # Dragging pH strip
+        if hasattr(self, 'ph_strip') and self.ph_strip and self.ph_strip.get('dragging'):
+            off_x, off_y = self.ph_strip.get('drag_offset', (0, 0))
+            self.ph_strip['x'] = int(mouse_x - off_x)
+            self.ph_strip['y'] = int(mouse_y - off_y)
+
         if self.hotplate:
             self.hotplate.on_mouse_move(mouse_x, mouse_y)
 
     def on_mouse_down(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
         """Start drag/press behavior for droppers."""
+        # pH strip takes priority if clicked
+        if hasattr(self, 'ph_strip') and self.ph_strip:
+            pbx = self.ph_strip['x']
+            pby = self.ph_strip['y']
+            pbw = self.ph_strip['width']
+            pbh = self.ph_strip['height']
+            if pbx <= mouse_x <= pbx + pbw and pby <= mouse_y <= pby + pbh:
+                self.ph_strip['dragging'] = True
+                self.ph_strip['drag_offset'] = (mouse_x - pbx, mouse_y - pby)
+                return
+
         # Start dragging if a dropper is pressed
         for dropper in self.droppers:
             if dropper.on_mouse_down(mouse_x, mouse_y):
@@ -175,6 +210,12 @@ class GameMode:
 
     def on_mouse_up(self, mouse_x: float, mouse_y: float, button: int = 1) -> None:
         """Handle mouse release; drop a dragged chemical into flask if over it."""
+        # finish dragging pH strip
+        if hasattr(self, 'ph_strip') and self.ph_strip and self.ph_strip.get('dragging'):
+            self.ph_strip['dragging'] = False
+            self.ph_strip.pop('drag_offset', None)
+            return
+
         if self.dragging_dropper:
             # check if released over flask bounds
             if self.flask:
@@ -242,6 +283,20 @@ class GameMode:
         # Update thermometer display
         if self.thermometer:
             self.thermometer.set_temperature_kelvin(self.flask.chemical_state.temperature)
+
+        # Update pH strip current reading if overlapping flask
+        if hasattr(self, 'ph_strip') and self.ph_strip and self.flask:
+            ph_val = self.flask.get_ph()
+            # If the ph_strip rectangle intersects flask bounds, set current_ph
+            pbx = self.ph_strip['x']
+            pby = self.ph_strip['y']
+            pbw = self.ph_strip['width']
+            pbh = self.ph_strip['height']
+            fb = self.flask.get_visual_data().get('bounds', {})
+            fx, fy, fw, fh = fb.get('x', 0), fb.get('y', 0), fb.get('width', 0), fb.get('height', 0)
+            # overlap test
+            overlap = not (pbx + pbw < fx or pbx > fx + fw or pby + pbh < fy or pby > fy + fh)
+            self.ph_strip['current_ph'] = ph_val if overlap else None
         
         # Check challenge state (if in challenge mode)
         if self.mode_type == "challenge" and self.challenge:
@@ -286,6 +341,13 @@ class GameMode:
             data['ui_elements'].append({
                 'type': 'dropper',
                 'data': dropper.get_render_data()
+            })
+
+        # Add pH strip render data
+        if hasattr(self, 'ph_strip') and self.ph_strip:
+            data['ui_elements'].append({
+                'type': 'ph_strip',
+                'data': self.ph_strip.copy()
             })
         
         if self.thermometer:

@@ -143,6 +143,59 @@ class Flask:
                 for chemical, moles in self.chemical_state.chemicals.items()
             ]
         }
+
+    def get_ph(self) -> float | None:
+        """Estimate pH of the current mixture using simple heuristics.
+
+        Returns approximate pH in range [0,14] or None if undefined.
+        Uses known strong acids/bases and simple fractions for weak species.
+        """
+        # Map molecule names to acid/base behavior (strength factor, positive for H+ donors, negative for OH- donors)
+        strength = {
+            'HCl': ('acid', 1.0),
+            'H+': ('acid', 1.0),
+            'H2SO4': ('acid', 2.0),
+            'NaOH': ('base', 1.0),
+            'OH-': ('base', 1.0),
+            'NH3': ('base', 0.1)  # weak base fraction
+        }
+
+        total_H = 0.0
+        total_OH = 0.0
+        for chemical, moles in self.chemical_state.chemicals.items():
+            name = chemical.name if hasattr(chemical, 'name') else str(chemical)
+            if name in strength:
+                typ, factor = strength[name]
+                if typ == 'acid':
+                    total_H += moles * factor
+                else:
+                    total_OH += moles * factor
+            else:
+                # Heuristic: if name contains 'H' at start and is not H2O, treat as acid small
+                if name.startswith('H') and name != 'H2O':
+                    total_H += moles * 0.5
+
+        # Convert to concentrations (mol/L)
+        vol = max(1e-6, float(self.volume))
+        H_conc = total_H / vol
+        OH_conc = total_OH / vol
+
+        # Net result
+        if H_conc <= 0 and OH_conc <= 0:
+            return None
+
+        import math
+        if H_conc >= OH_conc:
+            net_H = max(1e-14, H_conc - OH_conc)
+            ph = -math.log10(net_H)
+        else:
+            net_OH = OH_conc - H_conc
+            poh = -math.log10(max(1e-14, net_OH))
+            ph = 14.0 - poh
+
+        # Clamp
+        ph = max(0.0, min(14.0, ph))
+        return ph
     
     
     def get_chemical_by_name(self, name: str) -> Chemical:

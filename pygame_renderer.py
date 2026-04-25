@@ -322,6 +322,26 @@ class PygameRenderer:
                 label_s = self.fonts['small'].render(label, True, border)
                 label_r = label_s.get_rect(center=(pd['x'] + pd['width'] // 2, pd['y'] + pd['height'] // 2))
                 self.screen.blit(label_s, label_r)
+            elif element_type == 'ph_strip':
+                pd = data
+                x = int(pd['x'])
+                y = int(pd['y'])
+                w = int(pd['width'])
+                h = int(pd['height'])
+                pygame.draw.rect(self.screen, (230,230,230), (x, y, w, h))
+                pygame.draw.rect(self.screen, (0,0,0), (x, y, w, h), 2)
+                # If current_ph present, render numeric value and a colored indicator
+                cur = pd.get('current_ph')
+                if cur is not None:
+                    ph_text = f"pH: {cur:.2f}"
+                    surf = self.fonts['small'].render(ph_text, True, (0,0,0))
+                    self.screen.blit(surf, (x + w + 8, y + h//2 - 8))
+                    # color mapping: 0 (red) -> 7 (green) -> 14 (blue)
+                    t = max(0.0, min(14.0, cur)) / 14.0
+                    r = int(255 * (1 - min(1.0, t*2)))
+                    g = int(255 * (1 - abs(t-0.5)*2))
+                    b = int(255 * min(1.0, t*2))
+                    pygame.draw.rect(self.screen, (r,g,b), (x, y - 12, w, 8))
     
     def render_challenge_info(self, challenge_data: Dict) -> None:
         """
@@ -359,52 +379,99 @@ class PygameRenderer:
             pygame.draw.rect(self.screen, (0, 150, 0), (left_x, left_y, progress_width, bar_height))
             pygame.draw.rect(self.screen, (0, 0, 0), (left_x, left_y, bar_width, bar_height), 1)
 
-        # Right area: Objectives panel (scrollable)
-        panel_w = 260
-        panel_h = 380
-        panel_x = self.width - panel_w - 20
-        panel_y = 20
+        # Right sidebar area (thermometer, pH strip, timer, objectives)
+        sidebar_w = 300
+        sidebar_x = self.width - sidebar_w - 20
+        sidebar_y = 20
+        sidebar_padding = 12
 
-        # Panel background
-        pygame.draw.rect(self.screen, (245, 245, 250), (panel_x, panel_y, panel_w, panel_h))
-        pygame.draw.rect(self.screen, (0, 0, 0), (panel_x, panel_y, panel_w, panel_h), 2)
+        # Background panel
+        pygame.draw.rect(self.screen, (245, 245, 250), (sidebar_x, sidebar_y, sidebar_w, self.height - 40))
+        pygame.draw.rect(self.screen, (0, 0, 0), (sidebar_x, sidebar_y, sidebar_w, self.height - 40), 2)
 
-        # Panel title
-        title_s = self.fonts['medium'].render('Objectives', True, (0, 0, 0))
-        self.screen.blit(title_s, (panel_x + 12, panel_y + 8))
+        inner_x = sidebar_x + sidebar_padding
+        inner_y = sidebar_y + sidebar_padding
 
-        # Prepare objective lines from win_conditions
+        # Thermometer image (if present) and numeric temperature
+        temp = challenge_data.get('current_temp', 293.15)
+        temp_text = f"{temp:.1f} K"
+        temp_label = self.fonts['medium'].render('Thermometer', True, (0, 0, 0))
+        self.screen.blit(temp_label, (inner_x, inner_y))
+        inner_y += 28
+
+        # Draw thermometer image if asset exists
+        if self.assets.get('full_flask') is not None:
+            # placeholder: use full_flask as thermometer substitute if thermometer image not provided
+            try:
+                img = pygame.transform.smoothscale(self.assets['full_flask'], (40, 120))
+                self.screen.blit(img, (inner_x, inner_y))
+            except Exception:
+                pass
+
+        temp_surf = self.fonts['small'].render(temp_text, True, (0, 0, 0))
+        self.screen.blit(temp_surf, (inner_x + 60, inner_y + 50))
+        inner_y += 140
+
+        # pH strip label
+        ph_label = self.fonts['medium'].render('pH Strip', True, (0, 0, 0))
+        self.screen.blit(ph_label, (inner_x, inner_y))
+        inner_y += 24
+
+        # Draw a placeholder pH strip graphic (renderer will draw the live strip separately)
+        pygame.draw.rect(self.screen, (230,230,230), (inner_x, inner_y, 40, 160))
+        pygame.draw.rect(self.screen, (0,0,0), (inner_x, inner_y, 40, 160), 1)
+        inner_y += 170
+
+        # Timer / challenge progress
+        if challenge_data.get('time_limit'):
+            time_text = f"Time: {challenge_data['time_elapsed']:.1f}s / {challenge_data['time_limit']:.0f}s"
+            time_surface = self.fonts['small'].render(time_text, True, (0, 0, 0))
+            self.screen.blit(time_surface, (inner_x, inner_y))
+            inner_y += 24
+
+            # Time progress bar
+            bar_width = sidebar_w - sidebar_padding * 2
+            bar_height = 10
+            pygame.draw.rect(self.screen, (220,220,220), (inner_x, inner_y, bar_width, bar_height))
+            progress_width = int(bar_width * challenge_data.get('time_progress', 0.0))
+            pygame.draw.rect(self.screen, (0, 150, 0), (inner_x, inner_y, progress_width, bar_height))
+            pygame.draw.rect(self.screen, (0, 0, 0), (inner_x, inner_y, bar_width, bar_height), 1)
+            inner_y += 28
+
+        # Objectives box inside sidebar
+        obj_title = self.fonts['medium'].render('Objectives', True, (0, 0, 0))
+        self.screen.blit(obj_title, (inner_x, inner_y))
+        inner_y += 24
+
+        # Draw objective content
         win = challenge_data.get('win_conditions', {})
-        lines = []
+        # Target color swatch
         if 'target_color' in win:
-            lines.append(f"Target color: {win['target_color']}")
+            sw_x = inner_x
+            sw_y = inner_y
+            sw_w = 36
+            sw_h = 24
+            color_rgb = self._hex_to_rgb(win['target_color'])
+            pygame.draw.rect(self.screen, color_rgb, (sw_x, sw_y, sw_w, sw_h))
+            pygame.draw.rect(self.screen, (0,0,0), (sw_x, sw_y, sw_w, sw_h), 1)
+            # label
+            lab = self.fonts['small'].render('Target color', True, (0,0,0))
+            self.screen.blit(lab, (sw_x + sw_w + 8, sw_y))
+            inner_y += sw_h + 12
+
+        # Additional objectives
         if 'min_gas' in win:
-            lines.append(f"Produce ≥ {win['min_gas']} mol gas")
+            line = f"Produce ≥ {win['min_gas']} mol gas"
+            lsurf = self.fonts['small'].render(line, True, (30,30,30))
+            self.screen.blit(lsurf, (inner_x, inner_y)); inner_y += 18
         if 'max_temp' in win:
-            lines.append(f"Keep temp ≤ {win['max_temp']:.0f} K")
+            line = f"Keep temp ≤ {win['max_temp']:.0f} K"
+            lsurf = self.fonts['small'].render(line, True, (30,30,30))
+            self.screen.blit(lsurf, (inner_x, inner_y)); inner_y += 18
         if 'min_temp' in win:
-            lines.append(f"Reach temp ≥ {win['min_temp']:.0f} K")
-
-        # If no explicit lines, show description as objective
-        if not lines:
-            lines.append(challenge_data.get('description', ''))
-
-        # Scroll offset (provided by GameMode)
-        scroll = int(challenge_data.get('scroll_offset', 0))
-
-        # Draw objective text with simple scrolling
-        y_cursor = panel_y + 40 + scroll
-        text_color = (30, 30, 30)
-        for line in lines:
-            text_surf = self.fonts['small'].render('• ' + line, True, text_color)
-            # Only blit if inside panel area
-            if y_cursor + text_surf.get_height() > panel_y and y_cursor < panel_y + panel_h:
-                self.screen.blit(text_surf, (panel_x + 12, y_cursor))
-            y_cursor += text_surf.get_height() + 8
-
-        # Footer hint
-        hint = self.fonts['small'].render('Scroll to view more', True, (100, 100, 100))
-        self.screen.blit(hint, (panel_x + 12, panel_y + panel_h - 24))
+            line = f"Reach temp ≥ {win['min_temp']:.0f} K"
+            lsurf = self.fonts['small'].render(line, True, (30,30,30))
+            self.screen.blit(lsurf, (inner_x, inner_y)); inner_y += 18
     
     def render_status_message(self, message: str, x: float = None, y: float = None) -> None:
         """
