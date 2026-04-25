@@ -11,7 +11,7 @@ from flask import Flask
 def test_chemical():
     """Test Chemical class."""
     print("\n=== Testing Chemical ===")
-    h2o = Chemical("H2O", 1.0, "#87CEEB", -285.8)  # Light blue, exothermic
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 1.0, "#87CEEB", -285.8)  # Light blue, exothermic
     print(f"Created: {h2o}")
     
     h2o.add_moles(0.5)
@@ -26,9 +26,9 @@ def test_reaction():
     print("\n=== Testing Reaction ===")
     
     # Simple reaction: 2H2 + O2 -> 2H2O
-    h2 = Chemical("H2", 1.0, "#FFFF00", 0)      # Yellow
-    o2 = Chemical("O2", 0.5, "#87CEEB", 0)      # Light blue
-    h2o = Chemical("H2O", 0.0, "#FFFFFF", -285.8)  # Water, exothermic
+    h2 = Chemical("H2", [("H", 2)], 1.0, "#FFFF00", 0)      # Yellow
+    o2 = Chemical("O2", [("O", 2)], 0.5, "#87CEEB", 0)      # Light blue
+    h2o = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#FFFFFF", -285.8)  # Water, exothermic
     
     # Concentrations matter for Q calculation
     h2.concentration = 1.0
