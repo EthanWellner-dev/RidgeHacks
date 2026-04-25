@@ -1,0 +1,2 @@
+# RidgeHacks
+The winners ofc 🤪
