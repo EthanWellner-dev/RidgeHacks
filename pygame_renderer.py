@@ -93,6 +93,11 @@ class PygameRenderer:
         except Exception:
             self.assets['magnifier'] = None
     
+    def updateSize(self, w, h) -> None:
+        self.width = max(400, w)
+        self.height = max(300, h)
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+
     def _load_fonts(self) -> None:
         """Load all fonts."""
         for name, size in self.font_sizes.items():
@@ -840,6 +845,7 @@ class PygameRenderer:
     
     def flip(self) -> None:
         """Update display."""
+
         pygame.display.flip()
     
     def quit(self) -> None:

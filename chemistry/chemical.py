@@ -82,10 +82,8 @@ class Chemical:
         Args:
             volume: Container volume in liters
         """
-        # If this chemical has its own volume hint use that, otherwise use container volume
-        effective_vol = self.volume if (self.volume is not None and self.volume > 0) else volume
-        if effective_vol > 0:
-            self.concentration = self.moles / effective_vol
+        if volume > 0:
+            self.concentration = self.moles / volume
         else:
             self.concentration = 0.0
 

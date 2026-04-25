@@ -258,7 +258,10 @@ class GameApplication:
             elif event.type == pygame.MOUSEWHEEL:
                 if self.state in [AppState.SANDBOX, AppState.CHALLENGE] and self.game_mode:
                     self.game_mode.handle_input({'type': 'mouse_wheel', 'y': event.y})
-    
+
+            elif event.type == pygame.VIDEORESIZE:
+                # Update the window to the new size
+                self.renderer.updateSize(event.w, event.h)
     def handle_menu_input(self, key: int) -> None:
         if key == pygame.K_UP: self.menu_selected = (self.menu_selected - 1) % len(self.menu_options)
         elif key == pygame.K_DOWN: self.menu_selected = (self.menu_selected + 1) % len(self.menu_options)
