@@ -92,7 +92,8 @@ class Challenge:
         loss_status = self.check_loss_condition()
         if loss_status:
             self.state = "lost"
-            self.loss_reason = loss_status['reason']
+            # Some loss_status variants may return 'message' instead of 'reason'
+            self.loss_reason = loss_status.get('message', loss_status.get('reason', None))
             return loss_status
         
         # Check win conditions

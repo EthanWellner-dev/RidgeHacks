@@ -28,7 +28,23 @@
             "I": false
         },
         "molecules": {
-
+            "H2O": true,
+            "CO2": false,
+            "O2": false,
+            "N2": false,
+            "CH4": false,
+            "C2H6": false,
+            "C6H12O6": false,
+            "NaCl": false,
+            "HCl": true,
+            "NH3": true,
+            "SO2": false,
+            "H2SO4": false,
+            "CaCO3": false,
+            "Fe2O3": false,
+            "HF": false,
+            "HBr": false,
+            "NaOH": true
         }
     }
 
