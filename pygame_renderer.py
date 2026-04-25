@@ -3,6 +3,8 @@ pygame_renderer.py - Rendering layer for all game visuals.
 Converts backend data into pygame graphics.
 """
 
+import os
+
 import pygame
 from typing import Dict, List, Tuple
 
@@ -101,8 +103,8 @@ class PygameRenderer:
     def _load_fonts(self) -> None:
         """Load all fonts."""
         for name, size in self.font_sizes.items():
-            self.fonts[name] = pygame.font.Font(None, size)
-    
+            self.fonts[name] = pygame.font.Font(os.path.join(os.path.dirname(__file__), "assets", "RobotoC.ttf"), size)
+
     def _hex_to_rgb(self, hex_color: str) -> Tuple[int, int, int]:
         """
         Convert hex color to RGB tuple.
