@@ -73,10 +73,10 @@ class GameApplication:
         flask.bounds = {'x': 50, 'y': 100, 'width': 300, 'height': 500}
         
         # Create some common chemicals
-        water = Chemical("H2O", 0.0, "#87CEEB", -285.8)      # Light blue
-        acid = Chemical("H2SO4", 0.0, "#FF0000", -813)       # Red
-        base = Chemical("NaOH", 0.0, "#0000FF", -427)        # Blue
-        gas = Chemical("O2", 0.0, "#87CEEB", 0)              # Light blue
+        water = Chemical("H2O", [("H", 2), ("O", 1)], 0.0, "#87CEEB", -285.8)      # Light blue
+        acid = Chemical("H2SO4", [("H", 2), ("S", 1), ("O", 4)], 0.0, "#FF0000", -813)       # Red
+        base = Chemical("NaOH", [("Na", 1), ("O", 1), ("H", 1)], 0.0, "#0000FF", -427)        # Blue
+        gas = Chemical("O2", [("O", 2)], 0.0, "#87CEEB", 0)              # Light blue
         
         # Create droppers
         droppers = [

@@ -228,8 +228,8 @@ class ChallengeLibrary:
         Challenge 1: Shift the color from yellow to orange by adjusting pH.
         """
         # Chromate/dichromate color shift (simplified)
-        chromate = Chemical("Chromate", 0.5, "#FFD700", 0)  # Yellow
-        acid = Chemical("H+", 0.0, "#FFFFFF", 0)
+        chromate = Chemical("Chromate", [("Cr", 1), ("O", 4)], 0.5, "#FFD700", 0)  # Yellow
+        acid = Chemical("H+", [("H", 1)], 0.0, "#FFFFFF", 0)
         
         return Challenge(
             name="Color Shift",
@@ -247,9 +247,9 @@ class ChallengeLibrary:
         """
         Challenge 2: Produce O2 gas rapidly without overheating.
         """
-        h2o2 = Chemical("H2O2", 1.0, "#CCCCCC", 0)
-        catalyst = Chemical("MnO2", 0.1, "#404040", 0)
-        o2 = Chemical("O2", 0.0, "#87CEEB", 0)
+        h2o2 = Chemical("H2O2", [("H", 2), ("O", 2)], 1.0, "#CCCCCC", 0)
+        catalyst = Chemical("MnO2", [("Mn", 1), ("O", 2)], 0.1, "#404040", 0)
+        o2 = Chemical("O2", [("O", 2)], 0.0, "#87CEEB", 0)
         
         return Challenge(
             name="Gas Burst",
@@ -268,8 +268,8 @@ class ChallengeLibrary:
         """
         Challenge 3: Maintain equilibrium at exactly target color.
         """
-        reactant_a = Chemical("Reactant A", 1.0, "#FF0000", 50)
-        product_b = Chemical("Product B", 0.0, "#0000FF", -50)
+        reactant_a = Chemical("Reactant A", [("A", 1)], 1.0, "#FF0000", 50)
+        product_b = Chemical("Product B", [("B", 1)], 0.0, "#0000FF", -50)
         
         return Challenge(
             name="Equilibrium Balance",
